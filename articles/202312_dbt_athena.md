@@ -118,3 +118,7 @@ S3には、パーティションが設定されていることが多いので、
 
 # まとめ
 athenaとdbtを使った事例は少ないので、ベストプラクティスをさぐっていきたいです。
+
+# 参考
+[dbt-athenaことはじめ](https://qiita.com/n-gondo123/items/34bb07a0b2b5333bdc34)
+[Amazon Athenaに対してローカル環境からdbtを使ってみた](https://dev.classmethod.jp/articles/get-start-dbt-core-with-athena/)
