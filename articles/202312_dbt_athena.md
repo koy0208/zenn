@@ -7,7 +7,7 @@ published: true
 ---
 AWSathenaはS3へ保続されているデータに直接SQLを発行できるサーバレスなサービスです。通常はデータレイクに対するアドホック分析として使用されるathenaですが、今回はdbtと組み合わせて、データウェアハウスのように使えるようにしてみます。
 
-# 事前準備
+## 事前準備
 事前に以下を設定しておきます。
 - aws cliの設定
 - dbt-athenaのインストール
@@ -26,7 +26,7 @@ AWSathenaはS3へ保続されているデータに直接SQLを発行できるサ
 - こちらのチュートリアルレポジトリをcloneする。
   @[card](https://github.com/dbt-labs/jaffle_shop)
 
-# dbtのセットアップ
+## dbtのセットアップ
 `profiles.yml`に次の設定を追加します。
 
 ```yaml:~/.dbt/profiles.yml
@@ -67,7 +67,7 @@ jaffle_shop:
 
 https://github.com/dbt-athena/dbt-athena?tab=readme-ov-file#configuring-your-profile
 
-# 実行
+## 実行
 それでは、まずはそのまま実行してみます。
 ```zsh
 dbt seed
@@ -85,7 +85,7 @@ s3にもデータが保存されています。
 ![Alt text](/images/202312_dbt_athena/image2.png)
 
 
-# パーティション設定
+## パーティション設定
 S3には、パーティションが設定されていることが多いので、dbtの下流モデルにもパーティションを設定してみます。
 `models/orders.sql`に以下の変更を加えます。
 - モデル定義の上部に、configを加え、`order_date`をパーティション化するように指定する。
@@ -116,9 +116,9 @@ S3には、パーティションが設定されていることが多いので、
 
 ちゃんとパーティションテーブルになっているようです。
 
-# まとめ
+## まとめ
 athenaとdbtを使った事例は少ないので、ベストプラクティスをさぐっていきたいです。
 
-# 参考
+## 参考
 [dbt-athenaことはじめ](https://qiita.com/n-gondo123/items/34bb07a0b2b5333bdc34)
 [Amazon Athenaに対してローカル環境からdbtを使ってみた](https://dev.classmethod.jp/articles/get-start-dbt-core-with-athena/)
