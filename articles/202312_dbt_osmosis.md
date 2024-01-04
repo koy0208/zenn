@@ -13,7 +13,7 @@ published: true
 今回は、そんなdbtのyaml管理を楽にしてくれる`dbt-osmosis`を使用して、どこまで運用コストが削減できるかためしてみます。
 
 ## 事前準備
-大本の実行dbtプロジェクトは、チュートリアルである`jaffle_shop`レポジトリを使用します。事前準備として、各種モデルをDWH上に作成しおきます。（ローカルでも、BigqueryでもなんでもOKです。）
+実行dbtプロジェクトは、チュートリアルである`jaffle_shop`レポジトリを使用します。事前準備として、各種モデルをDWH上に作成しおきます。（ローカルでも、BigqueryでもなんでもOKです。）
 
 https://github.com/dbt-labs/jaffle_shop
 
@@ -23,7 +23,7 @@ pip install dbt-osmosis
 ```
 
 続いて、プロジェクトファイルに`dbt-osmosis`の設定を追加します。追加するのは、`+dbt-osmosis: "{yaml名}.yml"`のみです。モデルごとにyamlファイルを作成する（`{model}.yml`とする）こともできますし、すでにyamlファイルが存在する場合は名前をあわせます。（今回は`schema.yml`）
-また、フォルダごとに異なった名前でyamlファイルを管理している場合もなどでも柔軟に設定できます。
+また、フォルダごとに異なった名前でyamlファイルを管理している場合でも柔軟に設定できます。
 設定はこれだけです！
 ```yml:dbt_project.yml
 models:
