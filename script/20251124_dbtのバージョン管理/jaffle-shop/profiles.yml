@@ -1,0 +1,12 @@
+default:
+  target: postgres
+  outputs:
+    postgres:  
+      type: postgres
+      host: localhost
+      user: postgres
+      password: postgres
+      port: 5432
+      dbname: jaffleshop
+      schema: dbt
+      threads: 12

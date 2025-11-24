@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:latest  # or postgres:18
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
