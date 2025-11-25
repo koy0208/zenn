@@ -25,6 +25,8 @@ seeds:
 
 models:
   jaffle_shop:
+    post-hook:
+      - "{{ create_latest_version_view() }}"
     staging:
       +materialized: view
     marts:

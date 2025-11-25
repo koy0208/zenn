@@ -1,0 +1,26 @@
+models:
+  - name: dim_customers
+    columns:
+      - name: customer_id
+      - name: customer_name
+        data_tests:
+          - not_null
+      - name: age
+      - name: age_group
+    versions:
+      - v: 1
+        columns:
+          - name: age_group
+            data_tests:
+              - accepted_values:
+                  values: ["Young Adult", "Adult", "Senior"]
+      - v: 2
+        columns:
+          - include: all
+            exclude: [customer_name]
+          - name: age_group
+            data_tests:
+              - accepted_values:
+                  values: ["young", "middle", "senior"]
+
+    latest_version: 2
