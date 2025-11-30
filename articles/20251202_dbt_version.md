@@ -26,7 +26,7 @@ publication_name: finatext
   - dbtのモデルバージョン管理を活用し、モデルの開発とプロダクトの開発を切り離す。
 
 - How（どうやるか）
-  - yamlファイルでモデルのバージョンを管理する。
+  - YAMLファイルでモデルのバージョンを管理する。
   - モデルが破壊的に変更される場合、中身が大きく変わる場合は、モデルの別バージョンを作成する。
   - 最新バージョンを参照するviewテーブルを使用することで、プロダクト側の変更なしにモデルをリリースできる。
 
@@ -53,10 +53,11 @@ https://github.com/dbt-labs/jaffle-shop/tree/main
 
 ### サンプルモデル
 例えば、顧客の属性情報を管理するテーブル`dim_customers`を想定して、モデルの加工ロジックとカラムを変更するとします。
-変更箇所は、
+変更箇所は、以下です。
+
 - customer_nameを削除
 - 年齢区分のカテゴリ名を変更
-です。
+
 
 ```diff sql:dim_customers.sql
 
@@ -85,7 +86,7 @@ from src
 プロダクト側で`dim_customers`を参照していた場合は、当然エラーが起こります。
 （カラムも減っているし、年齢区分も変化している。）
 
-このままでは、データモデルの更新とプロダクト側の修正を同時にリリースしなければいけません。
+この方法では、データモデルの更新とプロダクト側の修正を同時にリリースする以外、モデルを更新する方法がありません。
 
 では、どうするか？
 
@@ -155,7 +156,8 @@ select * from {{ ref('dim_customers', v=1) }} limit 10;
 select * from {{ ref('dim_customers') }} limit 10;
 ```
 
-しかし、このままでは、プロダクト側でテーブル名を明示している場合は、`dim_customers_v2`とする必要があり、モデルの更新には、結局プロダクト側の更新も必要となります。
+ですが、まだ足りません。
+プロダクト側でテーブル名を明示している場合は、`dim_customers_v2`とする必要があり、モデルの更新には、結局プロダクト側の更新も必要となります。
 
 そこで、常に最新バージョンを参照するviewテーブルを作成するマクロを使用します。
 
@@ -208,20 +210,19 @@ models:
 
 ```
 
-実際に実行してみるとこんな感じです。
+実行してみるとこんな感じです。
 ```zsh
-dbt build -s dim_customers # これで、dim_customersの全バージョン（v1, v2）がビルドされます
+dbt build -s dim_customers # これで、dim_customersの全バージョン（v1, v2）がビルドされる
 
 >
 00:45:56  4 of 8 START sql table model main.dim_customers_v1 ............................. [RUN]
 00:45:56  5 of 8 START sql table model main.dim_customers_v2 ............................. [RUN]
-# ここで、v2がdim_customersという名前のviewテーブルにマッピングされていることがわかります
+# ここで、v2がdim_customersという名前のviewテーブルにマッピングされていることがわかる。
 00:45:56  Recreating view "dev"."main"."dim_customers" pointing to "dev"."main"."dim_customers_v2"
 00:45:56  5 of 8 OK created sql table model main.dim_customers_v2 ........................ [OK in 0.03s]
 00:45:56  4 of 8 OK created sql table model main.dim_customers_v1 ........................ [OK in 0.03s]
 ```
-
-`dim_customers`という名前のviewテーブルは、v2を参照していることがわかります。
+実際に`dim_customers`という名前のviewテーブルは、v2を参照していることがわかります。
 
 ![alt text](/images/20251202/image-0.png)
 
@@ -284,7 +285,7 @@ models:
   - 適切に過去バージョンの削除ルールを決めておく必要がある。
 - バージョンごとのメタデータ管理が大変
   - 扱うデータが増えるということは、それだけデータ品質に関する管理コストも上がる。
-  - バージョンごとのyamlをうまく活用する必要がある。
+  - バージョンごとのYAMLファイルをうまく活用する必要がある。
 
 
 ## まとめ
