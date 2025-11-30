@@ -1,5 +1,5 @@
 default:
-  target: postgres
+  target: duckdb
   outputs:
     postgres:  
       type: postgres
@@ -10,3 +10,9 @@ default:
       dbname: jaffleshop
       schema: dbt
       threads: 12
+  outputs:
+    duckdb:
+      type: duckdb
+      path: ./data/dev.duckdb
+      schema: main
+      threads: 4
