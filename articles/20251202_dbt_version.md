@@ -4,6 +4,7 @@ emoji: "🔄"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [dbt]
 published: false
+publication_name: finatext
 ---
 
 この記事は、[ナウキャストAdventCalendar2025](https://qiita.com/advent-calendar/2025/nowcast)の2日目の記事です。
