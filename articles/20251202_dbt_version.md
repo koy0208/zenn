@@ -2,7 +2,7 @@
 title: "プロダクトと仲良く付き合うためのデータモデルのバージョン管理"
 emoji: "🔄"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: [dbt]
+topics: [dbt, sql, dataengineering]
 published: false
 publication_name: finatext
 ---
