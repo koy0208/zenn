@@ -36,6 +36,9 @@ publication_name: finatext
 ![alt text](/images/20251202/image.png)
 
 特に、私が所属するREU（Real Estate Unit）では、不動産業界のクライアントへ向けたSaaSアプリケーションを提供しており、Snowflake上のデータを直接参照する仕組みになっています。
+
+https://lp.datalenshub.com/property
+
 つまり、データモデルの品質や安定性がそのままクライアント体験に直結するのが特徴です。そのため、既存モデルをそのまま書き換えると、当然ながらプロダクト側は影響を受けてしまいます。
 
 - データモデルは、最新の状況に合わせて継続的に改善したい。

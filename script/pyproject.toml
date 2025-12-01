@@ -8,4 +8,6 @@ dependencies = [
     "dbt-duckdb>=1.10.0",
     "dbt-postgres>=1.9.1",
     "duckdb>=1.4.2",
+    "fastapi>=0.122.1",
+    "pydantic>=2.12.5",
 ]
