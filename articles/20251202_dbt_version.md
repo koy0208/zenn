@@ -4,7 +4,7 @@ emoji: "🔄"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [dbt, sql, dataengineering]
 published: true # 
-published_at: 2025-12-02 17:00
+published_at: 2025-12-02 08:00
 publication_name: finatext
 ---
 
