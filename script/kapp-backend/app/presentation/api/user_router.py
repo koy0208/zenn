@@ -2,15 +2,17 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.usecase.create_user_usecase import CreateUserUseCase
 from app.usecase.dto.user_dto import UserCreateInput
 from app.presentation.schema.user_schema import UserRegisterRequest, UserResponse
+from sqlalchemy.orm import Session
+from app.adapter.database import get_db
+from app.adapter.repository.sqlalchemy_user_repository import SQLAlchemyUserRepository
 
 router = APIRouter(prefix="/users", tags=["users"])
+# DI用のユーティリティ
 
 
-# DI用のユーティリティ (本来は依存性注入ライブラリなどを使うが、ここではシンプルに実装)
-def get_create_user_usecase():
-    # main.py でインスタンス化された repository を使うなどの工夫が必要だが、
-    # 一旦ここで repository の依存を解決するように見せる（後で main.py で調整）
-    from app.main import user_repository
+def get_create_user_usecase(db: Session = Depends(get_db)):
+
+    user_repository = SQLAlchemyUserRepository(db)
 
     return CreateUserUseCase(user_repository)
 
