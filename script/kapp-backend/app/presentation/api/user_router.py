@@ -7,9 +7,9 @@ from app.adapter.database import get_db
 from app.adapter.repository.sqlalchemy_user_repository import SQLAlchemyUserRepository
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
 # DI用のユーティリティ
-
-
 def get_create_user_usecase(db: Session = Depends(get_db)):
 
     user_repository = SQLAlchemyUserRepository(db)
