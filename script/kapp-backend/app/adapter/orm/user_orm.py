@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String
 from app.adapter.database import Base
 from app.domain.model.user import User as UserDomain
 
+
 class UserORM(Base):
     __tablename__ = "users"
 
@@ -16,7 +17,7 @@ class UserORM(Base):
             id=self.id,
             username=self.username,
             email=self.email,
-            hashed_password=self.hashed_password
+            hashed_password=self.hashed_password,
         )
 
     # ドメインモデルからの変換メソッド (静的メソッド)
@@ -25,6 +26,6 @@ class UserORM(Base):
         return UserORM(
             id=user.id,
             username=user.username,
-            email=str(user.email), # EmailStr -> str
-            hashed_password=user.hashed_password
+            email=str(user.email),  # EmailStr -> str
+            hashed_password=user.hashed_password,
         )

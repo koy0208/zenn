@@ -10,18 +10,22 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 # DI用のユーティリティ
-def get_create_user_usecase(db: Session = Depends(get_db)):
+
+
+def get_create_user_usecase(db: Session = Depends(get_db)) -> CreateUserUseCase:
+
 
     user_repository = SQLAlchemyUserRepository(db)
+
 
     return CreateUserUseCase(user_repository)
 
 
-@router.post("/", response_model=UserResponse)
+@router.post("/")
 def register_user(
     request: UserRegisterRequest,
     usecase: CreateUserUseCase = Depends(get_create_user_usecase),
-):
+) -> UserResponse:
     try:
         input_data = UserCreateInput(
             username=request.username, email=request.email, password=request.password
