@@ -54,4 +54,5 @@ class TestS3StorageIntegration:
         storage = S3Storage()
         
         # 存在しないファイルの確認
+        # 注意: IAM権限に s3:ListBucket がないと、ここは 404 ではなく 403 になり失敗する
         assert storage.exists(f"non-existent-{uuid.uuid4()}") is False

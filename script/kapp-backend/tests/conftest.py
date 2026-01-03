@@ -1,5 +1,22 @@
+import sys
 import os
+
+# プロジェクトルートをsys.pathに追加 (testsディレクトリの1つ上)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pytest
+
+"""
+テストの実行例:
+1. 通常のユニットテスト (Mock使用)
+   uv run pytest
+
+2. 統合テスト (実際のAWS環境を使用)
+   export RUN_INTEGRATION=1
+   export TEST_S3_BUCKET_NAME=your-bucket-name
+   export AWS_PROFILE=your-profile
+   uv run pytest -m integration
+"""
 
 @pytest.fixture(autouse=True)
 def aws_credentials():

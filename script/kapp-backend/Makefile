@@ -5,3 +5,6 @@ help: ## ヘルプを表示
 
 run_server: ## 開発サーバーを起動してSwagger (http://localhost:8000/docs) を開ける状態にする
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+login:
+	aws sso login --profile dev
