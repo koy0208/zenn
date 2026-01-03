@@ -7,6 +7,10 @@ class Settings:
     DB_PORT = os.getenv("POSTGRES_PORT", "5432")
     DB_NAME = os.getenv("POSTGRES_DB", "kapp_db")
     
+    # AWS S3 Settings
+    AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
+    S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "my-bucket")
+
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

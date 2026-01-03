@@ -54,3 +54,17 @@
 *   `server_default=func.now()`: INSERT時に現在時刻が入る。
 *   `onupdate=func.now()`: UPDATE時に自動更新される。
 *   **重要**: Python側で保存直後の値を知るには、`db.refresh(obj)` を実行してDBから値を読み直す必要がある。
+
+## 4. 外部ストレージ (S3)
+
+### Q. なぜ S3 を直接使わず `FileStorage` インターフェースを作るのか？
+**A. 特定のクラウドベンダー (AWS) へのロックインを防ぎ、テストを容易にするため。**
+*   **柔軟性**: 将来的に Google Cloud Storage や Azure Blob Storage、あるいはローカルディスクに切り替える際、UseCase 層のコードを一切変更せずに済む。
+*   **テスト**: ローカルでの開発や自動テスト時に、S3に接続せず「メモリ内に保存するだけのFakeStorage」に差し替えることが容易になる。
+
+### Q. S3の認証情報はどこで管理する？
+**A. AWS SDK (boto3) のデフォルト認証チェーンに任せる。**
+*   コード内や `config.py` で Access Key を明示的に扱わないように変更済み。
+*   **SSOの場合**: ローカルで `aws sso login` した状態で、環境変数 `AWS_PROFILE=your-profile-name` を指定してアプリを起動すれば自動的に認証される。
+*   **本番環境**: IAMロールなどが自動的に使用される。
+*   **Access Keyを使う場合**: 環境変数 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` をセットすれば、boto3が勝手に読み込む。
