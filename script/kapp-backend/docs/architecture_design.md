@@ -36,21 +36,22 @@ app/
 ### 3.1. Domain Layer (ドメイン層)
 *   **役割**: ビジネスの中核となるルール、データの形、操作の定義。
 *   **構成要素**:
-    *   **Model (Entity/Value Object)**: ビジネスデータを表現するオブジェクト。Pydanticやdataclassを使用するが、これらはロジックのみを持ち、DB定義などは含まない。
-    *   **Repository Interface**: データの永続化（保存・取得）を行うための抽象インターフェース。
+    *   **Model (Entity/Value Object)**: ビジネスデータを表現するオブジェクト。Pydanticを使用。
+    *   **Repository Interface**: データの永続化を行うための抽象インターフェース。Pythonの **Protocol** を使用して定義することを推奨（継承不要なダックタイピング）。
 *   **依存関係**: **なし**。他のどのレイヤーにも依存しない。
 
 ### 3.2. UseCase Layer (ユースケース/アプリケーション層)
 *   **役割**: ドメインオブジェクトを操作し、ユーザーの要求（「ユーザー登録する」「一覧を取得する」など）を実現する。
 *   **構成要素**:
     *   **Service / Interactor**: 具体的な処理フロー。
-    *   **DTO (Data Transfer Object)**: UseCaseへの入力や出力データの型定義。
+    *   **DTO (Data Transfer Object)**: UseCaseへの入力や出力データの型定義。ドメインモデルとの変換ロジック（`to_domain`, `from_domain`）はここに持たせる。
 *   **依存関係**: **Domain Layer** にのみ依存する。具体的なDBの実装やWebフレームワークのことは知らない。
 
 ### 3.3. Adapter Layer (アダプター/インフラ層)
 *   **役割**: Domain層やUseCase層で定義されたインターフェースを、具体的な技術（PostgreSQL, Redis, AWS S3など）を使って実装する。
 *   **構成要素**:
-    *   **Repository Implementation**: SQL発行やORM操作を行うクラス。
+    *   **Repository Implementation**: SQLModel (SQLAlchemy) を使用して実装。
+    *   **ORM Model**: DBテーブル定義。循環参照を避けるため、`app/adapter/orm/model.py` などの1ファイルに集約することを許容する。
 *   **依存関係**: **Domain Layer** (インターフェース定義) に依存する。
 
 ### 3.4. Presentation Layer (プレゼンテーション層)

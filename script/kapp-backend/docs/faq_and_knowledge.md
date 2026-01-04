@@ -40,6 +40,34 @@
     *   `ArticleCreateInput.to_domain()`: 自身のデータを使って `Article` インスタンスを生成して返す。
     *   `ArticleOutput.from_domain(article)`: `Article` を受け取って自身のインスタンスを生成するクラスメソッド。
 
+### Q. `to_domain` (Create) と `apply_to_domain` (Update) の違いは？
+**A. 「新しく作る」か「既存の状態を変更する」かの違い。**
+*   **Create (`to_domain`)**:
+    *   DTOの全データを使って、新しいドメインモデルのインスタンスを生成する（Factoryパターン）。
+*   **Update (`apply_to_domain`)**:
+    *   既存のドメインモデルを受け取り、DTOにある「変更したい差分」だけを上書きする（Patch/Partial Update）。
+    *   **Fetch-Modify-Save**: UseCaseでは「①IDで取得(Fetch) → ②変更を適用(Modify) → ③保存(Save)」という3ステップを踏むのが定石。
+
+### Q. UseCaseの例外をRouterで `HTTPException` に変換するのはなぜ？
+**A. 「クライアントのミス(4xx)」と「サーバーのバグ(5xx)」を区別するため。**
+*   例外をそのまま放置すると、FastAPIは自動的に **500 Internal Server Error** （サーバーの故障）として返す。
+*   「IDが見つからない (`ValueError`)」などはクライアントの指定ミスなので、Routerでキャッチして **404 Not Found** を返すのが作法。これにより利用者が「あ、ID間違えた」と気づけるようになる。
+
+### Q. よく使うHTTPステータスコードのルールは？
+**A. 先頭の数字で責任の所在が決まっている。**
+*   **2xx (成功)**:
+    *   `200 OK`: 成功（GET/PUT等）。
+    *   `201 Created`: 新規作成成功（POST）。
+    *   `204 No Content`: 成功したが返す中身がない（DELETE）。
+*   **4xx (クライアントの責任)**:
+    *   `400 Bad Request`: リクエストがおかしい。
+    *   `401 Unauthorized`: ログインしていない。
+    *   `403 Forbidden`: 権限がない。
+    *   `404 Not Found`: モノが見つからない。
+    *   `422 Unprocessable Entity`: バリデーションエラー（型や必須項目の不足）。
+*   **5xx (サーバーの責任)**:
+    *   `500 Internal Server Error`: バグや予期せぬ例外。
+
 ### Q. `from_domain` は `@staticmethod` か `@classmethod` か？
 **A. `@classmethod` が推奨。**
 *   継承時にサブクラスのインスタンスを正しく生成できるため（`cls(...)` を使用）。

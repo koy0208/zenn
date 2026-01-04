@@ -42,6 +42,12 @@ def create_user(
 *   コード内での `Base.metadata.create_all()` の使用は**禁止**。
 *   モデル (`app/adapter/orm/*.py`) を変更した際は、必ずマイグレーションファイルを生成・適用する。
 
+### 2.4 エラーハンドリング (Error Handling)
+*   **UseCase層**: ビジネスロジックのエラー（例: IDが見つからない）は、Python標準の例外（`ValueError` 等）または専用の例外クラスを発生させる。
+*   **Presentation層 (Router)**: UseCaseからの例外をキャッチし、適切な `HTTPException` に変換する。
+    *   `ValueError` (IDなし) -> `404 Not Found`
+    *   想定外のエラー -> そのまま伝播させ `500 Internal Server Error` とする。
+
 ## 3. コマンドリファレンス (Command Reference)
 
 ### 開発サーバー起動
