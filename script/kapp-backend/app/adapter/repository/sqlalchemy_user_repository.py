@@ -1,9 +1,8 @@
 from sqlalchemy.orm import Session
 from app.domain.model.user import User
-from app.domain.repository.user_repository import UserRepository
-from app.adapter.orm.user_orm import UserORM
+from app.adapter.orm.model import UserORM
 
-class SQLAlchemyUserRepository(UserRepository):
+class SQLAlchemyUserRepository:
     def __init__(self, db: Session):
         self.db = db
 

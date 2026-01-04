@@ -16,6 +16,30 @@
 *   **理由**: Domain層はAdapter層（ORM）を知ってはいけないため、Adapter側が「Domainを知っている」状態にして変換を担当する。
 *   ドメインモデルに `to_table` メソッドを作ると、依存の逆流（Domain → Adapter）になるためNG。
 
+### Q. `Relationship` と `back_populates` の役割は？
+**A. テーブル間の繋がりをオブジェクトとして操作するための設定。**
+*   **カラムではない**: `author_id` はDBの数値カラムだが、`author` (`Relationship`) はPython上のオブジェクトへのリンク。
+*   **双方向**: `back_populates` を双方のモデルに書くことで、`article.author`（親を取得）と `user.articles`（子のリストを取得）の両方が可能になる。
+*   **同期**: メモリ上で片方を変更すると、もう片方も自動的に更新されるため不整合が起きにくい。
+*   **片方向**: 必ずしも双方向にする必要はない。不要な場合は片側のみに定義することも可能。
+
+### Q. DTOの変換方向（DTO ↔ Domain）はどうあるべき？
+**A. UseCase層を中心に入出力の責務を明確にする。**
+1.  **入力時 (DTO → Domain)**:
+    *   外部からのデータ（APIリクエスト等）を、アプリ内部で扱える形式（Domain Model）に変換する。
+2.  **出力時 (Domain → DTO)**:
+    *   アプリ内部の結果（Domain Model）を、外部に見せる形式（APIレスポンス等）に変換する。パスワード除去やフォーマット調整もここで行う。
+*   **NG**: Domain Model が DTO を知ること（`Article.from_dto(...)`）は、依存の方向が逆転するため禁止。
+
+### Q. `to_domain`, `from_domain` はどこに実装すべき？
+**A. DTO側に実装するのが推奨（Factory Method パターン）。**
+*   **メリット**:
+    *   UseCaseが「マッピング作業」から解放され、ビジネスロジック（流れ）の記述に集中できる。
+    *   複数のUseCaseで同じDTOを使う場合、変換ロジックを再利用できる。
+*   **例**:
+    *   `ArticleCreateInput.to_domain()`: 自身のデータを使って `Article` インスタンスを生成して返す。
+    *   `ArticleOutput.from_domain(article)`: `Article` を受け取って自身のインスタンスを生成するクラスメソッド。
+
 ### Q. `from_domain` は `@staticmethod` か `@classmethod` か？
 **A. `@classmethod` が推奨。**
 *   継承時にサブクラスのインスタンスを正しく生成できるため（`cls(...)` を使用）。

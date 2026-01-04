@@ -1,12 +1,11 @@
-from abc import ABC, abstractmethod
+from typing import Protocol
 
-class FileStorage(ABC):
-    @abstractmethod
+class FileStorage(Protocol):
     def get_file(self, key: str) -> bytes:
-        """指定されたキーのファイル内容をバイト列として取得する"""
-        pass
+        ...
     
-    @abstractmethod
+    def put_file(self, key: str, data: bytes) -> None:
+        ...
+
     def exists(self, key: str) -> bool:
-        """指定されたキーのファイルが存在するか確認する"""
-        pass
+        ...

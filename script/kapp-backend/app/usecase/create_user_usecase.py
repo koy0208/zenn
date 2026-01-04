@@ -4,15 +4,15 @@ from app.usecase.dto.user_dto import UserCreateInput, UserOutput
 
 
 class CreateUserUseCase:
-    def __init__(self, user_repository: UserRepository):
-        self.user_repository = user_repository
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
 
     def execute(self, input_data: UserCreateInput) -> UserOutput:
         # 重複チェックの例
-        if self.user_repository.find_by_email(input_data.email):
+        if self.repository.find_by_email(input_data.email):
             raise ValueError("Email already registered")
 
-        if self.user_repository.find_by_username(input_data.username):
+        if self.repository.find_by_username(input_data.username):
             raise ValueError("Username already taken")
 
         # 本来はここでパスワードハッシュ化を行う

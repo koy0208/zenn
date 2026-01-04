@@ -47,7 +47,7 @@ from app.config import settings
 from sqlmodel import SQLModel
 
 # モデルをインポートしないとメタデータに登録されないため、ここでインポート
-from app.adapter.orm.user_orm import UserORM
+from app.adapter.orm.model import UserORM, ArticleORM
 
 # ------------------
 
