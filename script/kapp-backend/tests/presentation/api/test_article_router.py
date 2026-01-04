@@ -39,3 +39,91 @@ def test_create_article(client: TestClient, db: Session):
     assert article_in_db is not None
     assert article_in_db.title == "My First Article"
     assert article_in_db.author_id == user.id
+
+
+def test_update_article_success(client: TestClient, db: Session):
+    # 1. Prepare: Create a user and an article
+    user = UserORM(
+        username="update_author",
+        email="update_author@example.com",
+        hashed_password="hashed_secret",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    article = ArticleORM(
+        title="Original Title",
+        content="Original Content",
+        author_id=user.id
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+
+    # 2. Execute: Call Update API
+    response = client.put(
+        f"/articles/{article.id}",
+        json={
+            "title": "Updated Title",
+            "content": "Updated Content"
+        },
+    )
+
+    # 3. Verify Response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Updated Title"
+    assert data["content"] == "Updated Content"
+    assert data["id"] == article.id
+
+    # 4. Verify DB
+    db.refresh(article)
+    assert article.title == "Updated Title"
+    assert article.content == "Updated Content"
+
+
+def test_update_article_partial_update(client: TestClient, db: Session):
+    # 1. Prepare
+    user = UserORM(
+        username="partial_author",
+        email="partial_author@example.com",
+        hashed_password="hashed_secret",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    article = ArticleORM(
+        title="Original Title",
+        content="Original Content",
+        author_id=user.id
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+
+    # 2. Execute: Update only title
+    response = client.put(
+        f"/articles/{article.id}",
+        json={
+            "title": "New Title"
+        },
+    )
+
+    # 3. Verify
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "New Title"
+    assert data["content"] == "Original Content"  # Should remain unchanged
+
+
+def test_update_article_not_found(client: TestClient, db: Session):
+    response = client.put(
+        "/articles/99999",
+        json={
+            "title": "Ghost Article",
+            "content": "This should fail"
+        },
+    )
+    assert response.status_code == 404

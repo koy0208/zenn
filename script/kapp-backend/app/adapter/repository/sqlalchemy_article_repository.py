@@ -13,7 +13,7 @@ class SQLAlchemyArticleRepository(ArticleRepository):
 
         if article.id:
             # 更新の場合（今回は簡易的にマージ）
-            self.db.merge(article_orm)
+            article_orm = self.db.merge(article_orm)
         else:
             # 新規作成
             self.db.add(article_orm)
