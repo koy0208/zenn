@@ -18,6 +18,11 @@ const siteName = 'データの裏側をあるく';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#22406b" />
     {description && <meta name="description" content={description} />}
     <link rel="alternate" type="application/rss+xml" title={siteName} href="/feed.xml" />
     <title>{title === siteName ? title : `${title} | ${siteName}`}</title>
