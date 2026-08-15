@@ -1,0 +1,60 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+// ファイル名先頭の YYYYMMDD / YYYYMM から日付を推定する
+function dateFromId(id: string): Date | null {
+  const m = id.match(/(\d{4})(\d{2})(\d{2})?/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  return new Date(Number(y), Number(mo) - 1, d ? Number(d) : 1);
+}
+
+const articles = await getCollection('articles', (e) => e.data.published);
+const posts = await getCollection('posts');
+
+type Item = {
+  title: string;
+  href: string;
+  date: Date | null;
+  kind: 'article' | 'post';
+};
+
+const items: Item[] = [
+  ...articles.map((e) => ({
+    title: e.data.title,
+    href: `/articles/${e.id}/`,
+    date: e.data.published_at ? new Date(e.data.published_at) : dateFromId(e.id),
+    kind: 'article' as const,
+  })),
+  ...posts.map((e) => ({
+    title: e.data.title,
+    href: `/posts/${e.id}/`,
+    date: e.data.date,
+    kind: 'post' as const,
+  })),
+].sort((a, b) => (b.date?.valueOf() ?? 0) - (a.date?.valueOf() ?? 0));
+
+const fmt = (d: Date | null) =>
+  d ? d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' }) : '';
+---
+
+<Layout title="データの裏側をあるく" description="技術記事と雑記">
+  <h1>Articles</h1>
+  <p class="page-lead">技術記事と雑記。</p>
+  <ul class="post-list">
+    {
+      items.map((item) => (
+        <li>
+          <a class="post-link" href={item.href}>
+            {item.title}
+          </a>
+          <div class="post-meta">
+            {item.date && <time>{fmt(item.date)}</time>}
+            {item.kind === 'article' && <span class="badge">Zenn</span>}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</Layout>

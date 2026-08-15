@@ -1,0 +1,31 @@
+---
+import { getCollection } from 'astro:content';
+import markdownToHtml from 'zenn-markdown-html';
+import 'zenn-content-css';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('posts');
+  return entries.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const html = markdownToHtml(entry.body ?? '');
+const date = entry.data.date.toLocaleDateString('ja-JP', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<Layout title={entry.data.title}>
+  <header class="article-header">
+    <h1>{entry.data.title}</h1>
+    <div class="post-meta"><time>{date}</time></div>
+  </header>
+  <article class="znc" set:html={html} />
+  <a class="back-link" href="/">&larr; 一覧へ戻る</a>
+</Layout>

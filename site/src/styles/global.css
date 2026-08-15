@@ -1,0 +1,222 @@
+:root {
+  --sumi: #141b26;
+  --ai: #22406b;
+  --ai-bright: #3a5f96;
+  --kumo: #e3e7e2;
+  --paper: #f7f8f5;
+  --yamabuki: #b0801f;
+  --yamabuki-bright: #d8a63c;
+  --moss: #6a7268;
+  --line: rgba(20, 27, 38, 0.12);
+  --line-strong: rgba(20, 27, 38, 0.28);
+
+  --mincho: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  --gothic: "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans JP",
+    "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --bg: var(--paper);
+  --fg: var(--sumi);
+  --muted: var(--moss);
+  --link: var(--ai);
+  --border: var(--line);
+  --card: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10151d;
+    --fg: #e3e7e2;
+    --muted: #9aa39a;
+    --link: #8fb0e0;
+    --border: rgba(227, 231, 226, 0.14);
+    --card: #171e28;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--gothic);
+  font-size: 16px;
+  line-height: 1.85;
+  font-feature-settings: "palt" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-color: var(--yamabuki);
+}
+
+/* ---------- layout ---------- */
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.site-header__inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.site-title {
+  font-family: var(--mincho);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  text-decoration: none;
+}
+.site-nav {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+}
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.site-nav a:hover {
+  color: var(--link);
+}
+
+main.container {
+  padding-top: 48px;
+  padding-bottom: 80px;
+  min-height: 60vh;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0 48px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- headings / prose (non-article pages) ---------- */
+main h1 {
+  font-family: var(--mincho);
+  font-weight: 600;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  margin: 0 0 8px;
+}
+.page-lead {
+  color: var(--muted);
+  margin: 0 0 40px;
+}
+
+/* ---------- post list ---------- */
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.post-list li {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.post-list a.post-link {
+  display: block;
+  font-family: var(--mincho);
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  color: var(--fg);
+  letter-spacing: 0.01em;
+}
+.post-list a.post-link:hover {
+  color: var(--link);
+}
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border: 1px solid var(--yamabuki);
+  color: var(--yamabuki);
+  border-radius: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  .badge {
+    border-color: var(--yamabuki-bright);
+    color: var(--yamabuki-bright);
+  }
+}
+
+/* ---------- article page ---------- */
+.article-header {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.article-header .emoji {
+  font-size: 40px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 14px;
+}
+.article-header h1 {
+  font-family: var(--mincho);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 4.5vw, 2.3rem);
+  line-height: 1.35;
+  margin: 0;
+}
+.back-link {
+  display: inline-block;
+  margin-top: 40px;
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.back-link:hover {
+  color: var(--link);
+}
+
+/* keep zenn-content-css readable in dark mode container */
+.znc {
+  font-size: 16px;
+  line-height: 1.9;
+}

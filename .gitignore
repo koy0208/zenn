@@ -141,8 +141,8 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
-/site
+# mkdocs documentation (このリポジトリでは Astro サイトを site/ に置くため無効化)
+# /site
 
 # mypy
 .mypy_cache/

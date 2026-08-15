@@ -1,0 +1,26 @@
+---
+import { getCollection } from 'astro:content';
+import markdownToHtml from 'zenn-markdown-html';
+import 'zenn-content-css';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('articles', (e) => e.data.published);
+  return entries.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const html = markdownToHtml(entry.body ?? '');
+---
+
+<Layout title={entry.data.title}>
+  <header class="article-header">
+    {entry.data.emoji && <span class="emoji">{entry.data.emoji}</span>}
+    <h1>{entry.data.title}</h1>
+  </header>
+  <article class="znc" set:html={html} />
+  <a class="back-link" href="/">&larr; 一覧へ戻る</a>
+</Layout>

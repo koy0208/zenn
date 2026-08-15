@@ -1,0 +1,22 @@
+{
+  "name": "site",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "sync:images": "rm -rf public/images && cp -R ../images public/images",
+    "dev": "npm run sync:images && astro dev",
+    "build": "npm run sync:images && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.2.2",
+    "zenn-content-css": "^0.5.2",
+    "zenn-markdown-html": "^0.5.2"
+  }
+}
