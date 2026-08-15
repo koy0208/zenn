@@ -17,10 +17,12 @@ const html = markdownToHtml(entry.body ?? '');
 ---
 
 <Layout title={entry.data.title}>
-  <header class="article-header">
-    {entry.data.emoji && <span class="emoji">{entry.data.emoji}</span>}
-    <h1>{entry.data.title}</h1>
-  </header>
-  <article class="znc" set:html={html} />
+  <div class="reading">
+    <header class="article-header">
+      {entry.data.emoji && <span class="emoji">{entry.data.emoji}</span>}
+      <h1>{entry.data.title}</h1>
+    </header>
+    <article class="znc" set:html={html} />
+  </div>
   <a class="back-link" href="/">&larr; 一覧へ戻る</a>
 </Layout>

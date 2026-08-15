@@ -11,28 +11,28 @@
   --line-strong: rgba(20, 27, 38, 0.28);
 
   --mincho: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
-  --gothic: "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans JP",
-    "Helvetica Neue", Arial, sans-serif;
+  --gothic: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "BIZ UDPGothic", "Yu Gothic Medium", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  --bg: var(--paper);
+  --bg: #f8f9fb;
   --fg: var(--sumi);
   --muted: var(--moss);
   --link: var(--ai);
   --border: var(--line);
   --card: #ffffff;
+
+  /* 記事本文まわりのニュートラルなグレー基調 */
+  --reading-surface: #ffffff;
+  --reading-border: #e6e8eb;
+  --reading-text: #363b42;
+  --reading-heading: #1a1d21;
+  --reading-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.05);
+
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #10151d;
-    --fg: #e3e7e2;
-    --muted: #9aa39a;
-    --link: #8fb0e0;
-    --border: rgba(227, 231, 226, 0.14);
-    --card: #171e28;
-  }
-}
+/* ライト（白）基調で固定。OS のダークモードには追従しない。 */
 
 * {
   box-sizing: border-box;
@@ -47,10 +47,13 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--gothic);
-  font-size: 16px;
-  line-height: 1.85;
+  font-size: 16.5px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
   font-feature-settings: "palt" 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -64,21 +67,22 @@ a:hover {
 
 /* ---------- layout ---------- */
 .container {
-  max-width: 720px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 0 24px;
 }
 
 .site-header {
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  /* ヘッダーは最初のペーパー基調の色で固定（本文の白/グレーには追従しない） */
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 .site-header__inner {
-  max-width: 720px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 16px 24px;
   display: flex;
@@ -122,11 +126,11 @@ main.container {
 
 /* ---------- headings / prose (non-article pages) ---------- */
 main h1 {
-  font-family: var(--mincho);
-  font-weight: 600;
+  font-family: var(--gothic);
+  font-weight: 700;
   font-size: clamp(1.6rem, 4vw, 2.1rem);
-  line-height: 1.35;
-  letter-spacing: 0.01em;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
   margin: 0 0 8px;
 }
 .page-lead {
@@ -178,18 +182,21 @@ main h1 {
   color: var(--yamabuki);
   border-radius: 2px;
 }
-@media (prefers-color-scheme: dark) {
-  .badge {
-    border-color: var(--yamabuki-bright);
-    color: var(--yamabuki-bright);
-  }
-}
 
 /* ---------- article page ---------- */
+/* 記事本文はニュートラルな白／グレーのカードにのせる */
+.reading {
+  background: var(--reading-surface);
+  border: 1px solid var(--reading-border);
+  border-radius: 14px;
+  padding: clamp(22px, 4vw, 48px);
+  box-shadow: var(--reading-shadow);
+  color: var(--reading-text);
+}
 .article-header {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--reading-border);
 }
 .article-header .emoji {
   font-size: 40px;
@@ -198,15 +205,19 @@ main h1 {
   margin-bottom: 14px;
 }
 .article-header h1 {
-  font-family: var(--mincho);
-  font-weight: 600;
+  font-family: var(--gothic);
+  font-weight: 700;
   font-size: clamp(1.7rem, 4.5vw, 2.3rem);
-  line-height: 1.35;
+  line-height: 1.4;
   margin: 0;
+  color: var(--reading-heading);
+}
+.article-header .post-meta {
+  color: var(--muted);
 }
 .back-link {
   display: inline-block;
-  margin-top: 40px;
+  margin-top: 28px;
   font-size: 14px;
   color: var(--muted);
   text-decoration: none;
@@ -215,8 +226,28 @@ main h1 {
   color: var(--link);
 }
 
-/* keep zenn-content-css readable in dark mode container */
-.znc {
-  font-size: 16px;
-  line-height: 1.9;
+/* zenn-content-css の本文色をニュートラルなグレーに寄せる */
+.reading .znc {
+  font-family: var(--gothic);
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--reading-text);
+}
+.reading .znc :where(h1, h2, h3, h4, h5, strong, b) {
+  color: var(--reading-heading);
+}
+/* 見出し前後・段落の余白を詰める（zenn-content-css の広めの余白を上書き） */
+.reading .znc :where(h1, h2, h3, h4) {
+  margin-top: 1.6em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+  padding-top: 0;
+}
+.reading .znc :where(p) {
+  margin-top: 0;
+  margin-bottom: 0.85em;
+}
+.reading .znc :where(ul, ol) {
+  margin-top: 0.5em;
+  margin-bottom: 0.85em;
 }
