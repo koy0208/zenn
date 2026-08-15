@@ -4,6 +4,7 @@ emoji: "🚀"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [aws, dbt]
 published: true
+published_at: 2023-12-26 11:01
 ---
 AWSathenaはS3へ保続されているデータに直接SQLを発行できるサーバレスなサービスです。通常はデータレイクに対するアドホック分析として使用されるathenaですが、今回はdbtと組み合わせて、データウェアハウスのように使えるようにしてみます。
 

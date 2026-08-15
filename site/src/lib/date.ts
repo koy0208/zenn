@@ -15,11 +15,11 @@ export function dateFromId(id: string): EntryDate | null {
   };
 }
 
-/** 一覧用の等幅表記。日が不明なら月だけ返す（例: 12.02 / 12） */
-export function shortDate({ date, hasDay }: EntryDate): string {
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  if (!hasDay) return mm;
-  return `${mm}.${String(date.getDate()).padStart(2, '0')}`;
+/** 一覧用の等幅表記。日が不明なら年月まで（例: 2025.12.02 / 2025.12） */
+export function listDate({ date, hasDay }: EntryDate): string {
+  const ym = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
+  if (!hasDay) return ym;
+  return `${ym}.${String(date.getDate()).padStart(2, '0')}`;
 }
 
 /** 記事ページ用の和文表記（例: 2025年12月2日） */

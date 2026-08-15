@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import { postSlug } from '../lib/slug';
-import { dateFromId, isoDate, shortDate, type EntryDate } from '../lib/date';
+import { dateFromId, isoDate, listDate, type EntryDate } from '../lib/date';
 
 const articles = await getCollection('articles', (e) => e.data.published);
 const posts = await getCollection('posts');
@@ -33,54 +33,38 @@ const items: Item[] = [
     kind: 'post' as const,
   })),
 ].sort((a, b) => (b.when?.date.valueOf() ?? 0) - (a.when?.date.valueOf() ?? 0));
-
-// 年ごとにまとめる（年が不明なものは末尾の「その他」へ）
-const years: { year: string; items: Item[] }[] = [];
-for (const item of items) {
-  const year = item.when ? String(item.when.date.getFullYear()) : 'その他';
-  const last = years.at(-1);
-  if (last && last.year === year) last.items.push(item);
-  else years.push({ year, items: [item] });
-}
 ---
 
 <Layout title="データの裏側をあるく" description="技術記事と雑記">
   <h1>記事一覧</h1>
   <p class="page-lead">技術記事と雑記。</p>
 
-  <div class="archive">
+  <ul class="entry-list">
     {
-      years.map((group) => (
-        <section class="archive-year">
-          <h2 class="year-label">{group.year}</h2>
-          <ul class="entry-list">
-            {group.items.map((item) => (
-              <li class="entry">
-                <a class="entry-link" href={item.href}>
-                  {item.when ? (
-                    <time class="entry-date" datetime={isoDate(item.when)}>
-                      {shortDate(item.when)}
-                    </time>
-                  ) : (
-                    <span class="entry-date" />
-                  )}
-                  <span class="entry-body">
-                    <span class="entry-title">{item.title}</span>
-                    {(item.kind === 'article' || item.tags.length > 0) && (
-                      <span class="entry-meta">
-                        {item.kind === 'article' && <span class="entry-source">Zenn</span>}
-                        {item.tags.map((tag) => (
-                          <span class="entry-tag">{tag}</span>
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
+      items.map((item) => (
+        <li class="entry">
+          <a class="entry-link" href={item.href}>
+            {item.when ? (
+              <time class="entry-date" datetime={isoDate(item.when)}>
+                {listDate(item.when)}
+              </time>
+            ) : (
+              <span class="entry-date" />
+            )}
+            <span class="entry-body">
+              <span class="entry-title">{item.title}</span>
+              {(item.kind === 'article' || item.tags.length > 0) && (
+                <span class="entry-meta">
+                  {item.kind === 'article' && <span class="entry-source">Zenn</span>}
+                  {item.tags.map((tag) => (
+                    <span class="entry-tag">{tag}</span>
+                  ))}
+                </span>
+              )}
+            </span>
+          </a>
+        </li>
       ))
     }
-  </div>
+  </ul>
 </Layout>
