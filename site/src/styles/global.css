@@ -124,6 +124,20 @@ main.container {
   color: var(--muted);
 }
 
+/* ---------- mobile: 余白を詰める ---------- */
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+  .site-header__inner {
+    padding: 12px 16px;
+  }
+  main.container {
+    padding-top: 24px;
+    padding-bottom: 48px;
+  }
+}
+
 /* ---------- headings / prose (non-article pages) ---------- */
 main h1 {
   font-family: var(--gothic);
@@ -184,13 +198,8 @@ main h1 {
 }
 
 /* ---------- article page ---------- */
-/* 記事本文はニュートラルな白／グレーのカードにのせる */
+/* 記事本文はページ背景にそのまま置く（カード装飾なし） */
 .reading {
-  background: var(--reading-surface);
-  border: 1px solid var(--reading-border);
-  border-radius: 14px;
-  padding: clamp(22px, 4vw, 48px);
-  box-shadow: var(--reading-shadow);
   color: var(--reading-text);
 }
 .article-header {
