@@ -1,6 +1,7 @@
 import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
 import { postSlug } from '../lib/slug';
+import { dateFromId } from '../lib/date';
 
 export async function GET(context) {
   const articles = await getCollection('articles', (e) => e.data.published);
@@ -10,7 +11,10 @@ export async function GET(context) {
     ...articles.map((e) => ({
       title: e.data.title,
       link: `/articles/${e.id}/`,
-      pubDate: e.data.published_at ? new Date(e.data.published_at) : new Date(0),
+      // published_at がなければ一覧と同じくファイル名の日付にフォールバックする
+      pubDate: e.data.published_at
+        ? new Date(e.data.published_at)
+        : (dateFromId(e.id)?.date ?? new Date(0)),
     })),
     ...posts.map((e) => ({
       title: e.data.title,
