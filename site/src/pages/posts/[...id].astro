@@ -3,11 +3,13 @@ import { getCollection } from 'astro:content';
 import markdownToHtml from 'zenn-markdown-html';
 import 'zenn-content-css';
 import Layout from '../../layouts/Layout.astro';
+import { postSlugs } from '../../lib/slug';
 
 export async function getStaticPaths() {
   const entries = await getCollection('posts');
+  const slugs = postSlugs(entries); // 衝突があればここで throw してビルドを止める
   return entries.map((entry) => ({
-    params: { id: entry.id },
+    params: { id: slugs.get(entry) },
     props: { entry },
   }));
 }

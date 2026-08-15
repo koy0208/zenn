@@ -1,5 +1,6 @@
 import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
+import { postSlug } from '../lib/slug';
 
 export async function GET(context) {
   const articles = await getCollection('articles', (e) => e.data.published);
@@ -13,7 +14,7 @@ export async function GET(context) {
     })),
     ...posts.map((e) => ({
       title: e.data.title,
-      link: `/posts/${e.id}/`,
+      link: `/posts/${postSlug(e.id)}/`,
       pubDate: e.data.date,
     })),
   ].sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf());

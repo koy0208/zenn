@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import { postSlug } from '../lib/slug';
 
 // ファイル名先頭の YYYYMMDD / YYYYMM から日付を推定する
 function dateFromId(id: string): Date | null {
@@ -29,7 +30,7 @@ const items: Item[] = [
   })),
   ...posts.map((e) => ({
     title: e.data.title,
-    href: `/posts/${e.id}/`,
+    href: `/posts/${postSlug(e.id)}/`,
     date: e.data.date,
     kind: 'post' as const,
   })),
