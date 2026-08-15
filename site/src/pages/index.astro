@@ -2,14 +2,7 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import { postSlug } from '../lib/slug';
-
-// ファイル名先頭の YYYYMMDD / YYYYMM から日付を推定する
-function dateFromId(id: string): Date | null {
-  const m = id.match(/(\d{4})(\d{2})(\d{2})?/);
-  if (!m) return null;
-  const [, y, mo, d] = m;
-  return new Date(Number(y), Number(mo) - 1, d ? Number(d) : 1);
-}
+import { dateFromId, isoDate, listDate, type EntryDate } from '../lib/date';
 
 const articles = await getCollection('articles', (e) => e.data.published);
 const posts = await getCollection('posts');
@@ -17,7 +10,8 @@ const posts = await getCollection('posts');
 type Item = {
   title: string;
   href: string;
-  date: Date | null;
+  when: EntryDate | null;
+  tags: string[];
   kind: 'article' | 'post';
 };
 
@@ -25,35 +19,50 @@ const items: Item[] = [
   ...articles.map((e) => ({
     title: e.data.title,
     href: `/articles/${e.id}/`,
-    date: e.data.published_at ? new Date(e.data.published_at) : dateFromId(e.id),
+    when: e.data.published_at
+      ? { date: new Date(e.data.published_at), hasDay: true }
+      : dateFromId(e.id),
+    tags: e.data.topics,
     kind: 'article' as const,
   })),
   ...posts.map((e) => ({
     title: e.data.title,
     href: `/posts/${postSlug(e.id)}/`,
-    date: e.data.date,
+    when: { date: e.data.date, hasDay: true },
+    tags: e.data.tags,
     kind: 'post' as const,
   })),
-].sort((a, b) => (b.date?.valueOf() ?? 0) - (a.date?.valueOf() ?? 0));
-
-const fmt = (d: Date | null) =>
-  d ? d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' }) : '';
+].sort((a, b) => (b.when?.date.valueOf() ?? 0) - (a.when?.date.valueOf() ?? 0));
 ---
 
 <Layout title="データの裏側をあるく" description="技術記事と雑記">
-  <h1>Articles</h1>
+  <h1>記事一覧</h1>
   <p class="page-lead">技術記事と雑記。</p>
-  <ul class="post-list">
+
+  <ul class="entry-list">
     {
       items.map((item) => (
-        <li>
-          <a class="post-link" href={item.href}>
-            {item.title}
+        <li class="entry">
+          <a class="entry-link" href={item.href}>
+            {item.when ? (
+              <time class="entry-date" datetime={isoDate(item.when)}>
+                {listDate(item.when)}
+              </time>
+            ) : (
+              <span class="entry-date" />
+            )}
+            <span class="entry-body">
+              <span class="entry-title">{item.title}</span>
+              {(item.kind === 'article' || item.tags.length > 0) && (
+                <span class="entry-meta">
+                  {item.kind === 'article' && <span class="entry-source">Zenn</span>}
+                  {item.tags.map((tag) => (
+                    <span class="entry-tag">{tag}</span>
+                  ))}
+                </span>
+              )}
+            </span>
           </a>
-          <div class="post-meta">
-            {item.date && <time>{fmt(item.date)}</time>}
-            {item.kind === 'article' && <span class="badge">Zenn</span>}
-          </div>
         </li>
       ))
     }

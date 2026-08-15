@@ -10,7 +10,7 @@
   --line: rgba(20, 27, 38, 0.12);
   --line-strong: rgba(20, 27, 38, 0.28);
 
-  --mincho: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  /* 書体はゴシック一本。強弱はサイズ・太さ・色でつける（数値まわりのみ等幅） */
   --gothic: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
     "BIZ UDPGothic", "Yu Gothic Medium", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -88,15 +88,17 @@ a:hover {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  /* 収まらない幅ではナビだけ次の行に落とす（文字の途中では折らない） */
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 .site-title {
-  font-family: var(--mincho);
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.04em;
   color: var(--fg);
   text-decoration: none;
+  white-space: nowrap;
 }
 .site-nav {
   display: flex;
@@ -106,6 +108,7 @@ a:hover {
 .site-nav a {
   color: var(--muted);
   text-decoration: none;
+  white-space: nowrap;
 }
 .site-nav a:hover {
   color: var(--link);
@@ -132,6 +135,13 @@ main.container {
   .site-header__inner {
     padding: 12px 16px;
   }
+  .site-title {
+    font-size: 17px;
+  }
+  .site-nav {
+    gap: 14px;
+    font-size: 13px;
+  }
   main.container {
     padding-top: 24px;
     padding-bottom: 48px;
@@ -149,32 +159,98 @@ main h1 {
 }
 .page-lead {
   color: var(--muted);
-  margin: 0 0 40px;
+  margin: 0 0 26px;
 }
 
-/* ---------- post list ---------- */
-.post-list {
+/* ---------- archive (記事一覧) ---------- */
+.entry-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.post-list li {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border);
+.entry + .entry {
+  border-top: 1px solid var(--border);
 }
-.post-list a.post-link {
-  display: block;
-  font-family: var(--mincho);
-  font-size: 1.18rem;
-  font-weight: 600;
-  line-height: 1.5;
+
+.entry-link {
+  display: grid;
+  grid-template-columns: 5.9em 1fr;
+  gap: 0 18px;
+  margin: 0 -12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   text-decoration: none;
-  color: var(--fg);
-  letter-spacing: 0.01em;
+  color: inherit;
+  transition: background-color 0.15s ease;
 }
-.post-list a.post-link:hover {
+.entry-link:hover {
+  background: color-mix(in srgb, var(--kumo) 42%, transparent);
+}
+
+.entry-date {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.entry-link:hover .entry-date {
+  color: var(--yamabuki);
+}
+
+.entry-title {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: var(--fg);
+}
+.entry-link:hover .entry-title {
   color: var(--link);
 }
+
+/* タグ・出典 */
+.entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 10px;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.entry-tag + .entry-tag::before {
+  content: "·";
+  margin-right: 10px;
+  color: var(--line-strong);
+}
+.entry-source {
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--yamabuki) 45%, transparent);
+  border-radius: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--yamabuki);
+}
+
+@media (max-width: 480px) {
+  .entry-link {
+    grid-template-columns: 1fr;
+    gap: 1px;
+    padding: 9px 12px;
+  }
+  .entry-date {
+    line-height: 1.5;
+  }
+  .entry-title {
+    font-size: 1.05rem;
+  }
+}
+
 .post-meta {
   display: flex;
   align-items: center;
@@ -185,18 +261,6 @@ main h1 {
   color: var(--muted);
   letter-spacing: 0.04em;
 }
-.badge {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 1px 7px;
-  border: 1px solid var(--yamabuki);
-  color: var(--yamabuki);
-  border-radius: 2px;
-}
-
 /* ---------- article page ---------- */
 /* 記事本文はページ背景にそのまま置く（カード装飾なし） */
 .reading {

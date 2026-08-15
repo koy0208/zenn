@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import markdownToHtml from 'zenn-markdown-html';
 import 'zenn-content-css';
 import Layout from '../../layouts/Layout.astro';
+import { dateFromId, isoDate, longDate } from '../../lib/date';
 
 export async function getStaticPaths() {
   const entries = await getCollection('articles', (e) => e.data.published);
@@ -14,6 +15,9 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const html = markdownToHtml(entry.body ?? '');
+const when = entry.data.published_at
+  ? { date: new Date(entry.data.published_at), hasDay: true }
+  : dateFromId(entry.id);
 ---
 
 <Layout title={entry.data.title}>
@@ -21,8 +25,12 @@ const html = markdownToHtml(entry.body ?? '');
     <header class="article-header">
       {entry.data.emoji && <span class="emoji">{entry.data.emoji}</span>}
       <h1>{entry.data.title}</h1>
+      <div class="post-meta">
+        {when && <time datetime={isoDate(when)}>{longDate(when)}</time>}
+        {entry.data.topics.map((topic) => <span class="entry-tag">{topic}</span>)}
+      </div>
     </header>
     <article class="znc" set:html={html} />
   </div>
-  <a class="back-link" href="/">&larr; 一覧へ戻る</a>
+  <a class="back-link" href="/">&larr; 記事一覧へ</a>
 </Layout>

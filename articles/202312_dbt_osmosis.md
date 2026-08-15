@@ -4,6 +4,7 @@ emoji: "📚"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [dbt,datacatalog]
 published: true
+published_at: 2024-01-03 01:14
 ---
 
 ## はじめに

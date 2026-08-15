@@ -2,12 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="About" description="筆者・山本孔次郎（Kojiro Yamamoto）について">
-  <h1>About</h1>
-  <p class="page-lead">筆者について</p>
+<Layout title="プロフィール" description="筆者・山本孔次郎（Kojiro Yamamoto）について">
+  <h1>プロフィール</h1>
 
   <section class="about">
-    <h2>筆者について</h2>
     <p><strong>本名：山本　孔次郎（Kojiro Yamamoto）</strong></p>
     <p>大学院では、医療統計、環境労働（公衆）衛生学を専門とし、データの分析設計、統計学を学ぶ。</p>
     <p>
@@ -152,15 +150,13 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <style>
-  .about h2 {
-    font-family: var(--mincho);
-    font-size: 1.3rem;
-    margin: 40px 0 14px;
+  .about {
+    margin-top: 26px;
   }
   .about h3 {
-    font-family: var(--mincho);
-    font-size: 1.12rem;
-    margin: 40px 0 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 36px 0 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
