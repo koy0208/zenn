@@ -10,7 +10,7 @@
   --line: rgba(20, 27, 38, 0.12);
   --line-strong: rgba(20, 27, 38, 0.28);
 
-  --mincho: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  /* 書体はゴシック一本。強弱はサイズ・太さ・色でつける（数値まわりのみ等幅） */
   --gothic: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
     "BIZ UDPGothic", "Yu Gothic Medium", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -93,10 +93,9 @@ a:hover {
   gap: 8px 16px;
 }
 .site-title {
-  font-family: var(--mincho);
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.04em;
   color: var(--fg);
   text-decoration: none;
   white-space: nowrap;
@@ -202,10 +201,9 @@ main h1 {
 
 .entry-title {
   display: block;
-  font-family: var(--mincho);
-  font-size: 1.1rem;
+  font-size: 1.02rem;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.55;
   letter-spacing: 0.01em;
   color: var(--fg);
 }
