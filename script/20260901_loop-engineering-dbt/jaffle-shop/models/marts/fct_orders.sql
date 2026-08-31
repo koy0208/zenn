@@ -8,7 +8,7 @@ orders as (
 
 locations as (
 
-    select * from {{ ref('stg_stores') }}
+    select * from {{ ref('stg_locations') }}
 
 ),
 
