@@ -16,7 +16,6 @@ customer_orders as (
 
     select
         customer_id,
-        location_id,
         count(*) as count_lifetime_orders,
         sum(order_total) as lifetime_spend,
         min(ordered_at) as first_ordered_at,

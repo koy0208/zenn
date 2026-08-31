@@ -5,13 +5,49 @@
 
 ## 現在地
 
-- イテレーション: 4
-- 最後の `verify.sh`: FAIL / PASS=43 ERROR=1 SKIP=5
-- 残っている失敗: `dim_customers`（GROUP BY）
+- イテレーション: 5
+- 最後の `verify.sh`: FAIL / PASS=47 ERROR=2 SKIP=0
+- 残っている失敗: `dim_customers` の `not_null` 2 件（注文実績のない顧客）
 
 ## 履歴
 
 <!-- ここから下に、新しいイテレーションを上から追記していく -->
+
+### イテレーション 5
+
+- **直した失敗**: `Binder Error in dim_customers: column "location_id" must appear in the GROUP BY clause`
+- **原因**: 顧客粒度の集計 CTE に `location_id` が混ざっていた。
+  そして**この列は下流の `joined` で一度も参照されていない**。集計する理由がそもそもなかった。
+
+#### 却下された修正
+
+DuckDB のエラーメッセージが直接提案してくる形。
+
+```
+Either add it to the GROUP BY list, or use "ANY_VALUE(location_id)" if the exact value of "location_id" is not important.
+```
+
+```sql
+any_value(location_id) as location_id,
+```
+
+- `verify.sh`: **PASS=47 / ERROR=2** — エラーは消え、次の失敗まで進む。
+- `VERDICT: REJECT`。理由は 2 つ。
+  1. この列は誰も読んでいない。集計してまで残す理由がない（最小の修正になっていない）。
+  2. `any_value` は「値が重要でないなら」という前提付きの関数。
+     このデータでは顧客と店舗が 1 対 1 なので**たまたま正しい値**が返る
+     （サンプルだけでなく元データ 935 顧客すべてで店舗数は 1）。
+     だが、その不変条件はモデルにもテストにも書かれていない。
+     顧客が 2 店舗目で注文した日に、エラーも出さずに壊れる。
+
+#### 採用した修正
+
+`location_id` の行を削除した。
+
+- **変更**: `jaffle-shop/models/marts/dim_customers.sql`
+- **監査**: 契約ファイルの差分ゼロ。削除した列が下流で参照されていないことを確認。
+- **結果**: PASS=43 → PASS=47
+- **残り**: 2 件（同じ原因の別カラム）
 
 ### イテレーション 4
 
