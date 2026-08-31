@@ -1,0 +1,104 @@
+diff --git a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/dim_customers.sql b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/dim_customers.sql
+index bcad22b..e43c30b 100644
+--- a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/dim_customers.sql
++++ b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/dim_customers.sql
+@@ -16,7 +16,6 @@ customer_orders as (
+ 
+     select
+         customer_id,
+-        location_id,
+         count(*) as count_lifetime_orders,
+         sum(order_total) as lifetime_spend,
+         min(ordered_at) as first_ordered_at,
+@@ -32,8 +31,9 @@ joined as (
+     select
+         customers.customer_id,
+         customers.customer_name,
+-        customer_orders.count_lifetime_orders,
+-        customer_orders.lifetime_spend,
++        -- 注文実績のない顧客も 1 行として残すため、集計値は 0 で埋める
++        coalesce(customer_orders.count_lifetime_orders, 0) as count_lifetime_orders,
++        coalesce(customer_orders.lifetime_spend, 0) as lifetime_spend,
+         customer_orders.first_ordered_at,
+         customer_orders.last_ordered_at
+ 
+diff --git a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_order_items.sql b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_order_items.sql
+index 5471c76..fff8899 100644
+--- a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_order_items.sql
++++ b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_order_items.sql
+@@ -12,9 +12,15 @@ products as (
+ 
+ ),
+ 
+-supplies as (
++supply_cost_per_product as (
+ 
+-    select * from {{ ref('stg_supplies') }}
++    -- 副資材は SKU ごとに複数行あるため、join する前に SKU 粒度へ畳む
++    select
++        product_id,
++        sum(supply_cost) as supply_cost
++
++    from {{ ref('stg_supplies') }}
++    group by product_id
+ 
+ ),
+ 
+@@ -27,15 +33,15 @@ joined as (
+         products.product_name,
+         products.product_type,
+         products.product_price,
+-        supplies.supply_cost
++        supply_cost_per_product.supply_cost
+ 
+     from order_items
+ 
+     left join products
+         on order_items.product_id = products.product_id
+ 
+-    left join supplies
+-        on products.product_id = supplies.product_id
++    left join supply_cost_per_product
++        on products.product_id = supply_cost_per_product.product_id
+ 
+ )
+ 
+diff --git a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_orders.sql b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_orders.sql
+index e0b96f7..1864074 100644
+--- a/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_orders.sql
++++ b/script/20260901_loop-engineering-dbt/jaffle-shop/models/marts/fct_orders.sql
+@@ -8,7 +8,7 @@ orders as (
+ 
+ locations as (
+ 
+-    select * from {{ ref('stg_stores') }}
++    select * from {{ ref('stg_locations') }}
+ 
+ ),
+ 
+diff --git a/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_orders.sql b/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_orders.sql
+index 244ecb8..d5d8f94 100644
+--- a/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_orders.sql
++++ b/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_orders.sql
+@@ -13,7 +13,7 @@ renamed as (
+         customer as customer_id,
+         store_id as location_id,
+         ordered_at,
+-        {{ cents_to_dollar('subtotal') }} as subtotal,
++        {{ cents_to_dollars('subtotal') }} as subtotal,
+         {{ cents_to_dollars('tax_paid') }} as tax_paid,
+         {{ cents_to_dollars('order_total') }} as order_total
+ 
+diff --git a/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_products.sql b/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_products.sql
+index 3a14ed2..60ca26f 100644
+--- a/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_products.sql
++++ b/script/20260901_loop-engineering-dbt/jaffle-shop/models/staging/stg_products.sql
+@@ -12,7 +12,7 @@ renamed as (
+         sku as product_id,
+         name as product_name,
+         type as product_type,
+-        {{ cents_to_dollars('product_price') }} as product_price,
++        {{ cents_to_dollars('price') }} as product_price,
+         description as product_description
+ 
+     from source

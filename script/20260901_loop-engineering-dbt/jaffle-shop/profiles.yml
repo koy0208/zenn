@@ -3,6 +3,6 @@ jaffle_shop:
   outputs:
     duckdb:
       type: duckdb
-      path: ./data/dev.duckdb
+      path: dev.duckdb
       schema: main
       threads: 4

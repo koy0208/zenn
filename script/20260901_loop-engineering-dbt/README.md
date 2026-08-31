@@ -1,0 +1,99 @@
+# ループエンジニアリングで dbt のエラーを潰すハンズオン
+
+わざと 6 個のエラーを仕込んだ dbt プロジェクトを、
+**エージェントに 1 件ずつプロンプトを打って直させるのではなく、
+勝手に直り続ける仕組みを設計して**片付ける演習。
+
+元ネタは Addy Osmani の [Loop Engineering](https://addyosmani.com/blog/loop-engineering/)。
+そこで挙げられている 5 つの構成要素を、そのまま dbt に対応させてある。
+
+| 構成要素 | この演習での実装 |
+| --- | --- |
+| Automations | `/loop /fix-next` — `.claude/commands/fix-next.md` |
+| Worktrees | `git worktree` でイテレーションを隔離する |
+| Skills | `.claude/skills/dbt-loop/SKILL.md` — 粒度・規約・禁止事項 |
+| Plugins / Connectors | `bin/verify.sh` が dbt と DuckDB を叩く境界 |
+| Sub-agents | `dbt-fixer`（作る）と `dbt-reviewer`（検証する）の分離 |
+| State | `LOOP_STATE.md` |
+
+## 準備
+
+必要なのは [uv](https://docs.astral.sh/uv/) だけ。dbt も DuckDB も uv が入れる。
+
+```sh
+cd script/20260901_loop-engineering-dbt
+uv sync
+```
+
+## まず壊れていることを確認する
+
+```sh
+./bin/verify.sh
+```
+
+`status: FAIL` と、いちばん上流のエラーが出れば準備完了。
+
+```
+=== VERIFY RESULT ===
+status: FAIL
+--- 失敗の詳細 ---
+Compilation Error
+  Model 'model.jaffle_shop.fct_orders' (models/marts/fct_orders.sql) depends on a node named 'stg_stores' which was not found
+```
+
+## ループを回す
+
+```sh
+claude
+```
+
+を起動して、
+
+```
+/loop /fix-next
+```
+
+`verify.sh` が `status: PASS` を返すまで、
+「失敗を 1 件選ぶ → `dbt-fixer` が直す → `dbt-reviewer` が監査する → `LOOP_STATE.md` に記録する → コミットする」
+が繰り返される。
+
+並行して他の作業をするなら worktree で隔離する。
+
+```sh
+git worktree add ../loop-run -b loop-run
+```
+
+## 仕込んであるエラー
+
+前半 4 つは構文の問題で、機械的に直せる。
+**後半 2 つは構文としては正しく、意味が壊れている。**
+ここでループの限界が出る。
+
+| # | 症状 | 種類 |
+| --- | --- | --- |
+| 1 | `depends on a node named 'stg_stores' which was not found` | コンパイルエラー |
+| 2 | `'cents_to_dollar' is undefined` | コンパイルエラー |
+| 3 | `Column "product_price" ... cannot be referenced before it is defined` | 実行時エラー |
+| 4 | `column "location_id" must appear in the GROUP BY clause` | 実行時エラー |
+| 5 | `unique_fct_order_items_order_item_id: Got 5795 results` | テスト失敗 |
+| 6 | `not_null_dim_customers_count_lifetime_orders: Got 181 results` | テスト失敗 |
+
+4 番のエラーメッセージは DuckDB が親切に `any_value()` を提案してくる。
+それに従うと**テストは緑になるが、モデルは壊れたまま**になる。
+5 番も `distinct` を足せば `unique` テストだけは通る。
+
+こうした「通ったことにする」直し方を防ぐのがループ側の仕事で、この演習では 3 段構えにしてある。
+
+1. `verify.sh` がテスト定義のハッシュを持っていて、書き換えを終了コード 2 で弾く
+2. `data-tests/assert_*_grain.sql` が行数を突き合わせるので、行を捨てる修正も落ちる
+3. `dbt-reviewer` が `git diff` を読んで、禁止された直し方を差し戻す
+
+## 答え合わせ
+
+```sh
+git diff --stat
+diff <(git show HEAD:...) solution/reference-fix.diff
+```
+
+`solution/reference-fix.diff` に想定解を置いてある。
+ループが出した差分と読み比べて、**違っていた箇所より、同じでも理由を説明できない箇所**を探すこと。
