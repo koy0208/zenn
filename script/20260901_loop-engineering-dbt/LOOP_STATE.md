@@ -5,13 +5,23 @@
 
 ## 現在地
 
-- イテレーション: 2
-- 最後の `verify.sh`: FAIL / PASS=27 ERROR=1 SKIP=21
-- 残っている失敗: `stg_products`（列参照）
+- イテレーション: 3
+- 最後の `verify.sh`: FAIL / PASS=36 ERROR=2 SKIP=11
+- 残っている失敗: `fct_order_items` の `unique` テストと粒度テスト（構文ではなく意味の問題）
 
 ## 履歴
 
 <!-- ここから下に、新しいイテレーションを上から追記していく -->
+
+### イテレーション 3
+
+- **直した失敗**: `Binder Error in stg_products: Column "product_price" referenced that exists in the SELECT clause - but this column cannot be referenced before it is defined`
+- **原因**: ソース `raw_products` の列名は `price` で、`product_price` は
+  このモデルが付ける**出力側**の別名だった。出力名を入力として読もうとしていた。
+- **変更**: `jaffle-shop/models/staging/stg_products.sql` の `cents_to_dollars('product_price')` → `cents_to_dollars('price')`
+- **監査**: 契約ファイルの差分ゼロ。`raw_products.csv` のヘッダが `sku,name,type,price,description` であることを確認。
+- **結果**: PASS=27 → PASS=36。**構文エラーはこれで尽きた。**
+- **残り**: 2 件。どちらも SQL としては正しく走った上でのテスト失敗。ここから性質が変わる。
 
 ### イテレーション 2
 
