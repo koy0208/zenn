@@ -12,9 +12,16 @@ products as (
 
 ),
 
-supplies as (
+supply_cost_per_product as (
 
-    select * from {{ ref('stg_supplies') }}
+    -- 副資材は SKU ごとに複数行ある。join してから畳むのでは遅い（行が増えてしまう）。
+    -- join する前に SKU 粒度へ畳んでおく。
+    select
+        product_id,
+        sum(supply_cost) as supply_cost
+
+    from {{ ref('stg_supplies') }}
+    group by product_id
 
 ),
 
@@ -27,15 +34,15 @@ joined as (
         products.product_name,
         products.product_type,
         products.product_price,
-        supplies.supply_cost
+        supply_cost_per_product.supply_cost
 
     from order_items
 
     left join products
         on order_items.product_id = products.product_id
 
-    left join supplies
-        on products.product_id = supplies.product_id
+    left join supply_cost_per_product
+        on products.product_id = supply_cost_per_product.product_id
 
 )
 
