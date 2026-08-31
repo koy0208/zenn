@@ -91,9 +91,27 @@ git worktree add ../loop-run -b loop-run
 ## 答え合わせ
 
 ```sh
-git diff --stat
-diff <(git show HEAD:...) solution/reference-fix.diff
+# ループが出した差分
+git diff loop-baseline -- jaffle-shop/models > /tmp/mine.diff
+
+# 想定解と読み比べる
+diff /tmp/mine.diff solution/reference-fix.diff
 ```
 
-`solution/reference-fix.diff` に想定解を置いてある。
-ループが出した差分と読み比べて、**違っていた箇所より、同じでも理由を説明できない箇所**を探すこと。
+`solution/` には 2 つ置いてある。
+
+- `reference-fix.diff` — 想定解の差分
+- `LOOP_STATE.completed.md` — 実際に 6 イテレーション回したときの記録。
+  **却下された修正とその理由**も残してある
+
+読み比べるときは、違っていた箇所より
+**同じでも理由を説明できない箇所**を探すこと。そこが理解の負債になる。
+
+## やり直す
+
+```sh
+./bin/reset.sh
+```
+
+モデルを初期状態に戻し、`LOOP_STATE.md`・DuckDB・ログを消す。
+契約ファイル（`*.yml` と `data-tests/`）は演習中も変わらないので触らない。
