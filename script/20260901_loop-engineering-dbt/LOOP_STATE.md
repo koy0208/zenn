@@ -5,13 +5,44 @@
 
 ## 現在地
 
-- イテレーション: 5
-- 最後の `verify.sh`: FAIL / PASS=47 ERROR=2 SKIP=0
-- 残っている失敗: `dim_customers` の `not_null` 2 件（注文実績のない顧客）
+- イテレーション: 6
+- 最後の `verify.sh`: **PASS / PASS=49 ERROR=0 SKIP=0**
+- 残っている失敗: なし。**ループ終了。**
 
 ## 履歴
 
 <!-- ここから下に、新しいイテレーションを上から追記していく -->
+
+### イテレーション 6（完了）
+
+- **直した失敗**: `not_null_dim_customers_count_lifetime_orders` と
+  `not_null_dim_customers_lifetime_spend`（各 181 件）
+- **原因**: 935 人のうち 181 人は、この期間に注文がない。
+  `left join` なので集計側が当たらず NULL になる。
+  データの欠損ではなく、**「注文回数 0」を NULL で表現してしまっていた**のが原因。
+- **変更**: `jaffle-shop/models/marts/dim_customers.sql` で
+  `count_lifetime_orders` と `lifetime_spend` を `coalesce(..., 0)` で包んだ。
+- **検討して却下した案**: `inner join` にする、`where ... is not null` で除外する。
+  どちらも 181 行が消えて `assert_dim_customers_grain` が落ちる。
+  仕様（1 行 = 1 顧客、注文がなくても残す）にも反する。
+- **監査**: `dim_customers` 935 行 = `stg_customers` 935 行。
+  `count_lifetime_orders = 0` が 181 件、NULL 残存 0 件。
+- **結果**: PASS=47 → **PASS=49 / ERROR=0**
+
+---
+
+## 終了時の申し送り
+
+ゲートは緑だが、以下は**テストで担保されていない**。人間が見るべき箇所。
+
+1. `dim_customers` から `location_id` を落とした判断は、
+   「顧客は 1 店舗にしか紐づかない」という現在のデータの性質に依存していない
+   （そもそも下流で使っていないため）。ただし逆に、
+   もし将来この列が必要になったら、顧客粒度では表現できないことを思い出すこと。
+2. `fct_orders.count_order_items` は、明細のない注文 27 件で NULL になる。
+   現在テストがないため緑のまま通っている。これが仕様どおりかは未確認。
+3. `supply_cost` は「SKU 1 個あたりの副資材コスト合計」。
+   明細の数量という概念がまだモデルに無いので、注文単位の原価は数量を無視している。
 
 ### イテレーション 5
 
