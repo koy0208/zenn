@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: ecom
+    schema: raw
+    description: Jaffle Shop の EC 生データ
+    tables:
+      - name: raw_customers
+        description: 1 行 = 1 顧客
+      - name: raw_orders
+        description: 1 行 = 1 注文
+        loaded_at_field: ordered_at
+      - name: raw_items
+        description: 1 行 = 注文明細 1 行
+      - name: raw_stores
+        description: 1 行 = 1 店舗
+        loaded_at_field: opened_at
+      - name: raw_products
+        description: 1 行 = 1 SKU
+      - name: raw_supplies
+        description: 1 行 = SKU ごとの副資材 1 種
