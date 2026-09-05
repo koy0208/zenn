@@ -1,0 +1,34 @@
+config-version: 2
+
+name: "jaffle_shop"
+version: "1.0.0"
+require-dbt-version: ">=1.9.0"
+profile: jaffle_shop
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["data-tests"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+seeds:
+  jaffle_shop:
+    +schema: raw
+    jaffle-data:
+      raw_orders:
+        +column_types:
+          ordered_at: timestamp
+      raw_stores:
+        +column_types:
+          opened_at: timestamp
+
+models:
+  jaffle_shop:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

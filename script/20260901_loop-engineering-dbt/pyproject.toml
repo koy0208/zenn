@@ -1,0 +1,10 @@
+[project]
+name = "loop-engineering-dbt"
+version = "0.1.0"
+description = "ループエンジニアリングで dbt のエラーを潰すハンズオン"
+requires-python = ">=3.12"
+dependencies = [
+    "dbt-core>=1.11,<1.12",
+    "dbt-duckdb>=1.11,<1.12",
+    "duckdb>=1.4",
+]

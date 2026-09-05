@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: fct_order_items
+    description: |
+      粒度: 1 行 = 注文明細 1 行。
+      stg_order_items と同じ行数でなければならない（下流で明細数を数えるため）。
+      supply_cost は「その SKU を作るのに必要な副資材コストの合計」であり、
+      副資材 1 種ごとの行に分かれてはいけない。
+    columns:
+      - name: order_item_id
+        description: 注文明細の主キー
+        data_tests:
+          - not_null
+          - unique
+      - name: order_id
+        data_tests:
+          - not_null
+      - name: product_id
+        data_tests:
+          - not_null
+      - name: supply_cost
+        description: SKU 1 個あたりの副資材コスト合計（ドル）
+        data_tests:
+          - not_null
+
+  - name: fct_orders
+    description: "粒度: 1 行 = 1 注文"
+    columns:
+      - name: order_id
+        description: 注文の主キー
+        data_tests:
+          - not_null
+          - unique
+      - name: customer_id
+        data_tests:
+          - not_null
+      - name: location_name
+        description: 注文された店舗名
+        data_tests:
+          - not_null
+
+  - name: dim_customers
+    description: |
+      粒度: 1 行 = 1 顧客。stg_customers と同じ行数でなければならない。
+      注文実績のない顧客も必ず 1 行として残し、集計値は 0 で埋める。
+    columns:
+      - name: customer_id
+        description: 顧客の主キー
+        data_tests:
+          - not_null
+          - unique
+      - name: count_lifetime_orders
+        description: 生涯注文回数。注文がない顧客は 0
+        data_tests:
+          - not_null
+      - name: lifetime_spend
+        description: 生涯注文金額の合計（ドル）。注文がない顧客は 0
+        data_tests:
+          - not_null
