@@ -1,0 +1,1211 @@
+<title>ゲートは緑、値は40倍ズレていた ─ dbtで試すループエンジニアリング</title>
+
+<style>
+  /* ============================================================
+     Tokens — light is the base; dark redefines tokens only.
+     ============================================================ */
+  :root {
+    --ground:        #F4F4F1;
+    --surface:       #FCFCFB;
+    --surface-sunk:  #EBEBE5;
+    --ink:           #17191A;
+    --ink-soft:      #4C5052;
+    --ink-faint:     #7E8385;
+    --rule:          #DEDED7;
+    --rule-strong:   #C6C6BD;
+
+    /* 主張を担う2色。validate_palette.js で light/dark とも6項目 PASS 済み */
+    --amber:         #A25E00;   /* 通るのに間違っている修正 */
+    --amber-wash:    #F6EEDF;
+    --blue:          #1A5FBE;   /* 正しい経路 */
+    --blue-wash:     #E4EBF8;
+
+    /* 状態色。必ずラベルと併記し、系列色としては使わない */
+    --pass:          #2F6B45;
+    --pass-wash:     #E4EFE8;
+    --fail:          #A33A2C;
+    --fail-wash:     #F7E5E2;
+
+    --term-bg:       #1B1D1E;
+    --term-ink:      #DCDED8;
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:       #131413;
+      --surface:      #1A1A19;
+      --surface-sunk: #101110;
+      --ink:          #E9E9E4;
+      --ink-soft:     #A9ACA6;
+      --ink-faint:    #7C807B;
+      --rule:         #2C2E2C;
+      --rule-strong:  #3F423F;
+
+      --amber:        #BC8020;
+      --amber-wash:   #2B2113;
+      --blue:         #3D82C4;
+      --blue-wash:    #14202E;
+
+      --pass:         #6FB588;
+      --pass-wash:    #14241A;
+      --fail:         #DE8778;
+      --fail-wash:    #2A1714;
+
+      --term-bg:      #0C0D0C;
+      --term-ink:     #D2D4CE;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:       #131413;
+    --surface:      #1A1A19;
+    --surface-sunk: #101110;
+    --ink:          #E9E9E4;
+    --ink-soft:     #A9ACA6;
+    --ink-faint:    #7C807B;
+    --rule:         #2C2E2C;
+    --rule-strong:  #3F423F;
+
+    --amber:        #BC8020;
+    --amber-wash:   #2B2113;
+    --blue:         #3D82C4;
+    --blue-wash:    #14202E;
+
+    --pass:         #6FB588;
+    --pass-wash:    #14241A;
+    --fail:         #DE8778;
+    --fail-wash:    #2A1714;
+
+    --term-bg:      #0C0D0C;
+    --term-ink:     #D2D4CE;
+  }
+
+  /* ============================================================
+     Base
+     ============================================================ */
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.85;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "palt" 1;
+  }
+
+  .page {
+    display: grid;
+    grid-template-columns: 1fr min(42rem, 100%) 1fr;
+    row-gap: 0;
+  }
+  .page > * { grid-column: 2; }
+  .page > .bleed {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(62rem, 100%);
+  }
+
+  h1, h2, h3 { text-wrap: balance; line-height: 1.4; margin: 0; }
+
+  h2 {
+    font-size: 1.75rem;
+    letter-spacing: 0.01em;
+    margin: 4.5rem 0 0.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 1.1875rem;
+    margin: 2.75rem 0 0.375rem;
+  }
+
+  p { margin: 0 0 1.15rem; }
+  p:last-child { margin-bottom: 0; }
+
+  a {
+    color: var(--blue);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--surface-sunk);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+  }
+
+  strong { font-weight: 700; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.75rem;
+  }
+
+  .lede {
+    font-size: 1.1875rem;
+    line-height: 1.8;
+    color: var(--ink-soft);
+  }
+
+  .note {
+    font-size: 0.875rem;
+    line-height: 1.75;
+    color: var(--ink-faint);
+  }
+
+  /* ============================================================
+     Hero
+     ============================================================ */
+  .hero { padding: 4.5rem 0 0; }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5.2vw, 3rem);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--amber);
+  }
+
+  .byline {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+
+  /* ============================================================
+     Twin readout — the thesis, shown not told
+     ============================================================ */
+  .twin {
+    margin: 3rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem;
+  }
+
+  .readout {
+    background: var(--term-bg);
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1.375rem;
+    border: 1px solid transparent;
+  }
+  .readout.is-wrong  { border-color: var(--amber); }
+  .readout.is-right  { border-color: var(--blue); }
+
+  .readout-tag {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.875rem;
+  }
+  .is-wrong .readout-tag { color: var(--amber); }
+  .is-right .readout-tag { color: var(--blue); }
+
+  .readout-tag::before {
+    content: "";
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    background: currentColor;
+    flex: none;
+  }
+
+  .readout pre {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--term-ink);
+    margin: 0;
+    white-space: pre;
+    overflow-x: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .readout-verdict {
+    font-family: var(--sans);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    margin-top: 1rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid rgba(255,255,255,0.14);
+    color: var(--term-ink);
+  }
+
+  .twin-caption {
+    font-family: var(--sans);
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    color: var(--ink-soft);
+    margin-top: 1.25rem;
+    text-align: center;
+  }
+  .twin-caption b { color: var(--ink); }
+
+  /* ============================================================
+     Cards
+     ============================================================ */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin: 1.75rem 0 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1.125rem 1.25rem 1.25rem;
+  }
+  .card h4 {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.5rem;
+    font-weight: 500;
+  }
+  .card p {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    margin: 0;
+  }
+
+  /* ============================================================
+     Tables
+     ============================================================ */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 1.75rem 0 0;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9375rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  th {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  td code { background: transparent; padding: 0; }
+  .exit-code {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* ============================================================
+     Figures
+     ============================================================ */
+  figure {
+    margin: 2.5rem 0 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1.5rem 1.25rem 1.125rem;
+  }
+  figure .scroll { overflow-x: auto; }
+  figure svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-width: 34rem;
+    color: var(--ink);
+  }
+  figcaption {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--ink-faint);
+    margin-top: 1.125rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .dgm-box   { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.5; }
+  .dgm-box-k { fill: var(--blue-wash); stroke: var(--blue); stroke-width: 1.5; }
+  .dgm-chip  { fill: var(--surface-sunk); stroke: var(--rule-strong); stroke-width: 1; }
+  .dgm-row   { fill: var(--surface-sunk); stroke: var(--rule-strong); stroke-width: 1; }
+  .dgm-row-a { fill: var(--amber-wash); stroke: var(--amber); stroke-width: 1; }
+  .dgm-row-b { fill: var(--blue-wash); stroke: var(--blue); stroke-width: 1; }
+  .dgm-line  { stroke: var(--ink-faint); stroke-width: 1.5; fill: none; }
+  .dgm-line-a{ stroke: var(--amber); stroke-width: 1.5; fill: none; }
+  .dgm-line-b{ stroke: var(--blue); stroke-width: 1.5; fill: none; }
+  .dgm-t     { font-family: var(--sans); font-size: 13px; fill: var(--ink); }
+  .dgm-m     { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .dgm-s     { font-family: var(--mono); font-size: 11px; fill: var(--ink-faint); }
+  .dgm-lbl   { font-family: var(--sans); font-size: 11.5px; fill: var(--ink-soft); }
+  .dgm-a     { fill: var(--amber); }
+  .dgm-b     { fill: var(--blue); }
+  .mid  { text-anchor: middle; }
+  .endt { text-anchor: end; }
+
+  /* ============================================================
+     Iteration ladder
+     ============================================================ */
+  .ladder {
+    margin: 2rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rung {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr 4.25rem;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+  }
+  .rung:first-child { border-radius: 8px 8px 0 0; }
+  .rung:last-child  { border-radius: 0 0 8px 8px; }
+
+  .rung-n {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .rung-body { min-width: 0; }
+  .rung-what {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-bottom: 0.375rem;
+  }
+  .rung-track {
+    height: 8px;
+    background: var(--surface-sunk);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .rung-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 4px;
+  }
+  .rung-fill.is-full { background: var(--pass); }
+  .rung-pass {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink-soft);
+  }
+  .rung-kind {
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+  }
+  .k-syntax { background: var(--surface-sunk); color: var(--ink-faint); }
+  .k-mean   { background: var(--amber-wash); color: var(--amber); }
+
+  /* ============================================================
+     Bar comparison chart
+     ============================================================ */
+  .chart { margin: 2.5rem 0 0; }
+  .chart-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.125rem;
+  }
+  .chart-title { font-size: 1rem; font-weight: 700; }
+  .legend {
+    display: flex;
+    gap: 1rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch {
+    width: 10px; height: 10px; border-radius: 2px; flex: none;
+  }
+  .sw-amber { background: var(--amber); }
+  .sw-blue  { background: var(--blue); }
+
+  .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 5.25rem 1fr;
+    gap: 0.875rem;
+    align-items: center;
+  }
+  .bar-sku {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+  .bar-pair { display: flex; flex-direction: column; gap: 2px; }
+  .bar-line { display: flex; align-items: center; gap: 0.5rem; }
+  .bar {
+    height: 11px;
+    border-radius: 0 3px 3px 0;
+    flex: none;
+  }
+  .bar.is-wrong { background: var(--amber); }
+  .bar.is-right { background: var(--blue); }
+  .bar-val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+  }
+
+  /* ============================================================
+     Callouts
+     ============================================================ */
+  .callout {
+    margin: 2rem 0 0;
+    padding: 1.125rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    font-size: 0.9375rem;
+    line-height: 1.8;
+  }
+  .callout.is-key {
+    border-color: var(--amber);
+    background: var(--amber-wash);
+  }
+  .callout-tag {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.375rem;
+    color: var(--amber);
+  }
+
+  blockquote {
+    margin: 1.75rem 0;
+    padding-left: 1.125rem;
+    border-left: 2px solid var(--rule-strong);
+    color: var(--ink-soft);
+    font-style: normal;
+  }
+  blockquote p { margin: 0; }
+  blockquote .src {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    display: block;
+    margin-top: 0.5rem;
+  }
+
+  pre.term {
+    background: var(--term-bg);
+    color: var(--term-ink);
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    padding: 1rem 1.125rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.75rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  pre.code {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    padding: 1rem 1.125rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.75rem 0 0;
+  }
+
+  ul.plain {
+    margin: 1.25rem 0 0;
+    padding-left: 1.25rem;
+  }
+  ul.plain li { margin-bottom: 0.625rem; }
+
+  .close {
+    margin-top: 4rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.875rem;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    line-height: 2;
+  }
+  .close a { color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .readout { animation: rise 0.5s ease-out both; }
+    .readout.is-right { animation-delay: 0.1s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+  }
+
+  @media (max-width: 34rem) {
+    body { font-size: 16px; }
+    .rung { grid-template-columns: 1.75rem 1fr 3.5rem; gap: 0.5rem; }
+    .bar-row { grid-template-columns: 4.25rem 1fr; }
+  }
+</style>
+
+<div class="page">
+
+  <!-- ═══════════════════════ HERO ═══════════════════════ -->
+  <header class="hero">
+    <p class="eyebrow">Loop Engineering × dbt — 実践レポート</p>
+    <h1>ゲートは緑。値は<em>40倍</em>ズレていた。</h1>
+    <p class="lede">
+      わざと 6 個のエラーを仕込んだ dbt プロジェクトを、プロンプトを打たずに「直り続ける仕組み」で片付ける。
+      ループは 4 個を気持ちよく潰し、残り 2 個で見事に騙されました。
+      その騙され方のほうが本題です。
+    </p>
+    <div class="byline">
+      <span>dbt 1.11 / DuckDB</span>
+      <span>モデル 9 本・テスト 34 本</span>
+      <span>6 イテレーション</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ THESIS ═══════════════════════ -->
+  <section class="bleed">
+    <div class="twin">
+      <div class="readout is-wrong">
+        <span class="readout-tag">壊れた修正</span>
+        <pre>$ ./bin/verify.sh
+Done. PASS=43 ERROR=1 SKIP=5
+
+fct rows / distinct keys:
+  (5795, 5795)
+stg rows:
+  (5795,)</pre>
+        <p class="readout-verdict">
+          行数も主キーも正しい。<br>
+          原価は全 SKU が <code>0.04</code> に化けている。
+        </p>
+      </div>
+
+      <div class="readout is-right">
+        <span class="readout-tag">正しい修正</span>
+        <pre>$ ./bin/verify.sh
+Done. PASS=43 ERROR=1 SKIP=5
+
+fct rows / distinct keys:
+  (5795, 5795)
+stg rows:
+  (5795,)</pre>
+        <p class="readout-verdict">
+          行数も主キーも正しい。<br>
+          原価は <code>0.63</code>〜<code>1.75</code>、実データと一致。
+        </p>
+      </div>
+    </div>
+    <p class="twin-caption">
+      自動化されたゲートから見ると、この 2 つは<b>まったく同じ結果</b>です。
+    </p>
+  </section>
+
+  <!-- ═══════════════════════ 30秒 ═══════════════════════ -->
+  <h2>30 秒でわかる全体像</h2>
+  <p>
+    Addy Osmani の <a href="https://addyosmani.com/blog/loop-engineering/">Loop Engineering</a> が言っているのは、
+    エージェントにプロンプトを打つ「人間の役割」そのものを仕組みに置き換えろ、ということです。
+  </p>
+
+  <blockquote>
+    <p>I don't prompt Claude anymore. I have loops running that prompt Claude.</p>
+    <span class="src">Addy Osmani, Loop Engineering</span>
+  </blockquote>
+
+  <div class="cards">
+    <div class="card">
+      <h4>Why</h4>
+      <p>dbt のエラー対応は「実行 → 読む → 直す → 再実行」で構造がいつも同じ。毎回プロンプトを打つのは、同じループを人間が手回ししているだけ。</p>
+    </div>
+    <div class="card">
+      <h4>What</h4>
+      <p>Automations / Worktrees / Skills / Connectors / Sub-agents ＋ State の 6 要素を、dbt プロジェクトにそのまま実装する。</p>
+    </div>
+    <div class="card">
+      <h4>How</h4>
+      <p>合格条件を <code>verify.sh</code> 1 本に落とし、終了コードを停止条件にする。作る役と検証する役を分け、進捗をリポジトリに残す。</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ 仕組み ═══════════════════════ -->
+  <h2>ループの中身</h2>
+  <p>
+    ループで最初に決めるのは、プロンプトではなく<strong>停止条件</strong>です。
+    <code>bin/verify.sh</code> がそれを担い、終了コードだけで次の行動が決まります。
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>終了コード</th><th>意味</th><th>次にやること</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="exit-code" style="color: var(--pass)">0</span></td>
+          <td>全モデル・全テストが緑</td>
+          <td>ループを終了する</td>
+        </tr>
+        <tr>
+          <td><span class="exit-code" style="color: var(--ink-soft)">1</span></td>
+          <td>dbt が落ちた</td>
+          <td>失敗を 1 件ずつ直す</td>
+        </tr>
+        <tr>
+          <td><span class="exit-code" style="color: var(--fail)">2</span></td>
+          <td>契約（テスト定義）が改変された</td>
+          <td><strong>停止して人間を呼ぶ</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:1.5rem">
+    3 番目が肝です。赤を緑にする最短ルートは、いつだって<strong>テストを消すこと</strong>だから。
+    <code>verify.sh</code> はテスト定義の SHA-256 を握っていて、書き換えを機械的に検知します。
+  </p>
+
+  <div class="callout is-key">
+    <span class="callout-tag">設計の急所</span>
+    エージェントが<strong>採点基準そのものを書き換えられる状態</strong>で、ループを回してはいけません。
+  </div>
+
+  <figure class="bleed">
+    <div class="scroll">
+      <svg viewBox="0 0 1010 356" role="img"
+           aria-label="1イテレーションの流れ。verify.sh が終了コード1を返すと dbt-fixer が1件だけ修正し、dbt-reviewer が git diff を監査する。APPROVE なら LOOP_STATE.md に記録してコミットし、verify.sh に戻る。REJECT なら fixer に差し戻す。終了コード0ならループ終了、2なら人間を呼ぶ。">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.55" />
+          </marker>
+          <marker id="arwA" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--amber)" />
+          </marker>
+        </defs>
+
+        <!-- outcome chips -->
+        <rect class="dgm-chip" x="8" y="140" width="122" height="30" rx="5" />
+        <text class="dgm-s mid" x="69" y="159" style="fill: var(--pass)">exit 0 → 終了</text>
+
+        <rect class="dgm-chip" x="8" y="194" width="122" height="30" rx="5" />
+        <text class="dgm-s mid" x="69" y="213" style="fill: var(--fail)">exit 2 → 人間</text>
+
+        <line class="dgm-line" x1="150" y1="158" x2="136" y2="155" marker-end="url(#arw)" />
+        <line class="dgm-line" x1="150" y1="206" x2="136" y2="209" marker-end="url(#arw)" />
+
+        <!-- main boxes -->
+        <rect class="dgm-box-k" x="150" y="150" width="150" height="64" rx="6" />
+        <text class="dgm-m mid" x="225" y="177">verify.sh</text>
+        <text class="dgm-lbl mid" x="225" y="196">合格判定ゲート</text>
+
+        <rect class="dgm-box" x="380" y="150" width="150" height="64" rx="6" />
+        <text class="dgm-m mid" x="455" y="177">dbt-fixer</text>
+        <text class="dgm-lbl mid" x="455" y="196">1 件だけ直す</text>
+
+        <rect class="dgm-box" x="610" y="150" width="150" height="64" rx="6" />
+        <text class="dgm-m mid" x="685" y="177">dbt-reviewer</text>
+        <text class="dgm-lbl mid" x="685" y="196">値を数えて監査</text>
+
+        <rect class="dgm-box" x="840" y="150" width="150" height="64" rx="6" />
+        <text class="dgm-m mid" x="915" y="177">LOOP_STATE</text>
+        <text class="dgm-lbl mid" x="915" y="196">記録してコミット</text>
+
+        <!-- forward arrows -->
+        <line class="dgm-line" x1="300" y1="182" x2="374" y2="182" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="337" y="172">exit 1</text>
+
+        <line class="dgm-line" x1="530" y1="182" x2="604" y2="182" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="567" y="172">git diff</text>
+
+        <line class="dgm-line" x1="760" y1="182" x2="834" y2="182" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="797" y="172">APPROVE</text>
+
+        <!-- reject arc -->
+        <path class="dgm-line-a" d="M 685 150 L 685 104 L 461 104"
+              marker-end="url(#arwA)" stroke-dasharray="5 4" />
+        <text class="dgm-s mid" x="573" y="94" style="fill: var(--amber)">REJECT → 差し戻し（最大 2 回）</text>
+
+        <!-- return path -->
+        <path class="dgm-line" d="M 915 214 L 915 300 L 225 300 L 225 220"
+              marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="570" y="320">次のイテレーションへ</text>
+      </svg>
+    </div>
+    <figcaption>
+      1 イテレーションの流れ。<strong>失敗は 1 件ずつしか直しません。</strong>
+      まとめて直すと、何がどれを解決したのか分からなくなるからです。
+      実装役の <code>dbt-fixer</code> と監査役の <code>dbt-reviewer</code> は別のエージェントで、
+      監査役には <code>Edit</code> も <code>Write</code> も渡していません。権限で役割を強制します。
+    </figcaption>
+  </figure>
+
+  <h3>Addy の 5 要素との対応</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>構成要素</th><th>役割</th><th>この演習での実装</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Automations</td><td>ループの心臓部</td><td><code>/loop /fix-next</code></td></tr>
+        <tr><td>Worktrees</td><td>並列作業を衝突させない</td><td><code>git worktree</code></td></tr>
+        <tr><td>Skills</td><td>毎回プロジェクトを説明しなくて済む</td><td><code>dbt-loop/SKILL.md</code></td></tr>
+        <tr><td>Connectors</td><td>実ツールに触る境界</td><td><code>bin/verify.sh</code></td></tr>
+        <tr><td>Sub-agents</td><td>作る人と検査する人を分ける</td><td><code>dbt-fixer</code> / <code>dbt-reviewer</code></td></tr>
+        <tr><td>State</td><td>セッションをまたいで覚える</td><td><code>LOOP_STATE.md</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Skill に書いた「やってはいけない直し方」</h3>
+  <p>
+    これがいちばん効きました。以下は全部「赤を緑にする」意味では成功してしまうので、
+    明示的に禁止しておかないと通ります。
+  </p>
+  <pre class="code">1. テストを消す・ゆるめる
+2. `distinct` で重複を潰す
+3. `any_value()` で GROUP BY エラーを黙らせる
+4. NULL を消すために `inner join` に変える
+5. `where ... is not null` で失敗行を除外する</pre>
+
+  <!-- ═══════════════════════ 6周 ═══════════════════════ -->
+  <h2>実際に回した 6 周</h2>
+  <p>
+    仕込んだエラーは<strong>手前 4 つが構文の問題、後ろ 2 つが意味の問題</strong>という構成です。
+    コンパイルエラー → 実行時エラー → テスト失敗の順に、層が剥がれるように片付いていきます。
+  </p>
+
+  <div class="ladder bleed">
+    <div class="rung">
+      <span class="rung-n">01</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-syntax">compile</span>存在しないモデルを <code>ref()</code> していた
+        </div>
+        <div class="rung-track"><div class="rung-fill" style="width:40.8%"></div></div>
+      </div>
+      <span class="rung-pass">20/49</span>
+    </div>
+
+    <div class="rung">
+      <span class="rung-n">02</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-syntax">compile</span>マクロ名の単複を打ち間違えていた
+        </div>
+        <div class="rung-track"><div class="rung-fill" style="width:55.1%"></div></div>
+      </div>
+      <span class="rung-pass">27/49</span>
+    </div>
+
+    <div class="rung">
+      <span class="rung-n">03</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-syntax">runtime</span>出力側の別名を入力として読んでいた
+        </div>
+        <div class="rung-track"><div class="rung-fill" style="width:73.5%"></div></div>
+      </div>
+      <span class="rung-pass">36/49</span>
+    </div>
+
+    <div class="rung">
+      <span class="rung-n">04</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-mean">意味</span>join のファンアウトで明細が増殖 ─ <strong>ここでゲートが騙される</strong>
+        </div>
+        <div class="rung-track"><div class="rung-fill" style="width:87.8%"></div></div>
+      </div>
+      <span class="rung-pass">43/49</span>
+    </div>
+
+    <div class="rung">
+      <span class="rung-n">05</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-mean">意味</span>誰も読まない列が集計粒度に混ざっていた
+        </div>
+        <div class="rung-track"><div class="rung-fill" style="width:95.9%"></div></div>
+      </div>
+      <span class="rung-pass">47/49</span>
+    </div>
+
+    <div class="rung">
+      <span class="rung-n">06</span>
+      <div class="rung-body">
+        <div class="rung-what">
+          <span class="rung-kind k-mean">意味</span>「注文 0 回」を NULL で表現してしまっていた
+        </div>
+        <div class="rung-track"><div class="rung-fill is-full" style="width:100%"></div></div>
+      </div>
+      <span class="rung-pass">49/49</span>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:1rem">
+    バーは 49 チェック中の PASS 数。1 周目より前は、パースが通らずモデルが 1 本も実行されていません。
+  </p>
+
+  <p style="margin-top:2rem">
+    1〜3 周目は面白いところが何もありません。エラーメッセージに答えが書いてあるからです。
+    3 周目で構文エラーが尽き、ここから性質が変わります。
+  </p>
+
+  <!-- ═══════════════════════ 山場 ═══════════════════════ -->
+  <h2>4 周目：ゲートが完全に騙される</h2>
+
+  <pre class="term">Failure in test unique_fct_order_items_order_item_id
+  Got 5795 results, configured to fail if != 0
+
+Failure in test assert_fct_order_items_grain
+  Got 1 result, configured to fail if != 0</pre>
+
+  <p style="margin-top:1.5rem">
+    原因は join のファンアウトです。<code>stg_supplies</code> は「SKU ごとの副資材 1 種」が 1 行で、
+    1 SKU あたり 4〜9 行あります。それを明細に直接 join したので、明細 1 行が副資材の数だけ複製されました。
+  </p>
+
+  <figure class="bleed">
+    <div class="scroll">
+      <svg viewBox="0 0 790 400" role="img"
+           aria-label="ファンアウトの前後比較。却下案では明細1行に対しSKUあたり4〜9行あるsuppliesをそのままjoinするため明細が4〜9行に増殖する。採用案ではsuppliesを先にproduct_id単位でsumして1行に畳んでからjoinするため、明細は1行のまま。">
+
+        <!-- ── panel 1: rejected ── -->
+        <text class="dgm-m" x="14" y="22" style="fill: var(--amber)">却下：多側をそのまま join</text>
+
+        <rect class="dgm-box" x="14" y="62" width="150" height="40" rx="5" />
+        <text class="dgm-t mid" x="89" y="87">明細 1 行</text>
+
+        <line class="dgm-line" x1="172" y1="82" x2="292" y2="82" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="232" y="72">join</text>
+
+        <text class="dgm-s" x="300" y="40">supplies　4〜9 行 / SKU</text>
+        <rect class="dgm-row" x="300" y="48" width="160" height="14" rx="2" />
+        <rect class="dgm-row" x="300" y="66" width="160" height="14" rx="2" />
+        <rect class="dgm-row" x="300" y="84" width="160" height="14" rx="2" />
+        <rect class="dgm-row" x="300" y="102" width="160" height="14" rx="2" />
+
+        <line class="dgm-line" x1="468" y1="82" x2="588" y2="82" marker-end="url(#arw)" />
+
+        <text class="dgm-s" x="596" y="40" style="fill: var(--amber)">明細が 4〜9 行に増殖</text>
+        <rect class="dgm-row-a" x="596" y="48" width="160" height="14" rx="2" />
+        <rect class="dgm-row-a" x="596" y="66" width="160" height="14" rx="2" />
+        <rect class="dgm-row-a" x="596" y="84" width="160" height="14" rx="2" />
+        <rect class="dgm-row-a" x="596" y="102" width="160" height="14" rx="2" />
+
+        <text class="dgm-s" x="596" y="140" style="fill: var(--amber)">unique テスト: 5,795 件が重複</text>
+
+        <line x1="14" y1="180" x2="776" y2="180" stroke="var(--rule)" stroke-width="1" />
+
+        <!-- ── panel 2: adopted ── -->
+        <text class="dgm-m" x="14" y="222" style="fill: var(--blue)">採用：join の前に畳む</text>
+
+        <text class="dgm-s" x="14" y="250">supplies　4〜9 行 / SKU</text>
+        <rect class="dgm-row" x="14" y="258" width="150" height="14" rx="2" />
+        <rect class="dgm-row" x="14" y="276" width="150" height="14" rx="2" />
+        <rect class="dgm-row" x="14" y="294" width="150" height="14" rx="2" />
+        <rect class="dgm-row" x="14" y="312" width="150" height="14" rx="2" />
+
+        <line class="dgm-line-b" x1="172" y1="292" x2="292" y2="292" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="232" y="282" style="fill: var(--blue)">sum() group by</text>
+
+        <rect class="dgm-row-b" x="300" y="272" width="160" height="40" rx="5" />
+        <text class="dgm-t mid" x="380" y="297">SKU ごとに 1 行</text>
+
+        <line class="dgm-line-b" x1="468" y1="292" x2="588" y2="292" marker-end="url(#arw)" />
+        <text class="dgm-s mid" x="528" y="282" style="fill: var(--blue)">join</text>
+
+        <rect class="dgm-box" x="596" y="272" width="160" height="40" rx="5" />
+        <text class="dgm-t mid" x="676" y="297">明細 1 行のまま</text>
+
+        <text class="dgm-s" x="596" y="340" style="fill: var(--blue)">行数 5,795 = 元の明細数</text>
+      </svg>
+    </div>
+    <figcaption>
+      変わったのは <strong>join の前に畳むか、後に畳むか</strong> の一点だけ。
+      多側（supplies）を SKU 粒度へ先に集約しておけば、join しても明細の粒度は保たれます。
+    </figcaption>
+  </figure>
+
+  <h3>重複を消しにいくと、こうなる</h3>
+  <p>ここで「重複しているのだから 1 行に絞ればいい」と考えると、こう書けます。</p>
+
+  <pre class="code">select * from joined
+qualify row_number() over (partition by order_item_id order by supply_cost) = 1</pre>
+
+  <p style="margin-top:1.5rem">
+    <code>unique</code> も粒度テストも<strong>通ります</strong>。行数を数えても正しい。
+    テストで検知できる要素は、すべて正しい。では中身はどうか。
+  </p>
+
+  <div class="chart bleed">
+    <div class="chart-head">
+      <span class="chart-title">SKU ごとの副資材コスト <code>supply_cost</code>（ドル）</span>
+      <span class="legend">
+        <span><i class="swatch sw-amber"></i>ショートカット版</span>
+        <span><i class="swatch sw-blue"></i>本来あるべき値</span>
+      </span>
+    </div>
+
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-sku">BEV-001</span>
+        <div class="bar-pair">
+          <div class="bar-line"><div class="bar is-wrong" style="width:2.3%"></div><span class="bar-val">0.04</span></div>
+          <div class="bar-line"><div class="bar is-right" style="width:46.9%"></div><span class="bar-val">0.82</span></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-sku">BEV-002</span>
+        <div class="bar-pair">
+          <div class="bar-line"><div class="bar is-wrong" style="width:2.3%"></div><span class="bar-val">0.04</span></div>
+          <div class="bar-line"><div class="bar is-right" style="width:100%"></div><span class="bar-val">1.75</span></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-sku">BEV-003</span>
+        <div class="bar-pair">
+          <div class="bar-line"><div class="bar is-wrong" style="width:2.3%"></div><span class="bar-val">0.04</span></div>
+          <div class="bar-line"><div class="bar is-right" style="width:88.0%"></div><span class="bar-val">1.54</span></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-sku">BEV-004</span>
+        <div class="bar-pair">
+          <div class="bar-line"><div class="bar is-wrong" style="width:2.3%"></div><span class="bar-val">0.04</span></div>
+          <div class="bar-line"><div class="bar is-right" style="width:46.9%"></div><span class="bar-val">0.82</span></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-sku">BEV-005</span>
+        <div class="bar-pair">
+          <div class="bar-line"><div class="bar is-wrong" style="width:2.3%"></div><span class="bar-val">0.04</span></div>
+          <div class="bar-line"><div class="bar is-right" style="width:36.0%"></div><span class="bar-val">0.63</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:1.25rem">
+      <code>order by supply_cost</code> が最安の副資材 1 行だけを残していました。
+      全 SKU の原価が <code>0.04</code> に化けています。しかもこの値は下流 <code>fct_orders.order_cost</code> の材料です。
+    </p>
+  </div>
+
+  <div class="callout is-key">
+    <span class="callout-tag">この記事の主張</span>
+    <strong>テストが通ったことと、モデルが正しいことは別物です。</strong>
+    そして自動化されたゲートは、前者しか判定できません。
+  </div>
+
+  <h3>3 段構えの防御は、どこで止めたのか</h3>
+
+  <figure class="bleed">
+    <div class="scroll">
+      <svg viewBox="0 0 860 250" role="img"
+           aria-label="3段構えの防御の通過図。テストを消す試みは1段目の契約ハッシュで止まる。qualifyで1行に絞る修正は1段目と2段目の粒度テストを通過し、3段目のdbt-reviewerによる値の照合でようやく止まる。">
+
+        <!-- gates -->
+        <rect x="256" y="34" width="7" height="128" rx="3" fill="var(--rule-strong)" />
+        <rect x="516" y="34" width="7" height="128" rx="3" fill="var(--rule-strong)" />
+        <rect x="776" y="34" width="7" height="128" rx="3" fill="var(--rule-strong)" />
+
+        <text class="dgm-s mid" x="259" y="24">1</text>
+        <text class="dgm-s mid" x="519" y="24">2</text>
+        <text class="dgm-s mid" x="779" y="24">3</text>
+
+        <!-- attempt A: delete the test -->
+        <text class="dgm-t" x="14" y="72">テストを消す</text>
+        <line class="dgm-line" x1="130" y1="66" x2="240" y2="66" marker-end="url(#arw)" />
+        <line x1="248" y1="56" x2="272" y2="80" stroke="var(--fail)" stroke-width="2.5" />
+        <line x1="272" y1="56" x2="248" y2="80" stroke="var(--fail)" stroke-width="2.5" />
+        <text class="dgm-s" x="288" y="70" style="fill: var(--fail)">exit 2 で停止</text>
+
+        <!-- attempt B: qualify -->
+        <text class="dgm-t" x="14" y="136">qualify で 1 行に絞る</text>
+        <line class="dgm-line-a" x1="196" y1="130" x2="500" y2="130" />
+        <line class="dgm-line-a" x1="500" y1="130" x2="760" y2="130" marker-end="url(#arwA)" />
+        <line x1="768" y1="120" x2="792" y2="144" stroke="var(--fail)" stroke-width="2.5" />
+        <line x1="792" y1="120" x2="768" y2="144" stroke="var(--fail)" stroke-width="2.5" />
+
+        <text class="dgm-s mid" x="386" y="120" style="fill: var(--amber)">素通り</text>
+        <text class="dgm-s mid" x="640" y="120" style="fill: var(--amber)">素通り</text>
+
+        <!-- gate labels -->
+        <line x1="14" y1="180" x2="846" y2="180" stroke="var(--rule)" stroke-width="1" />
+        <text class="dgm-m mid" x="259" y="204">contract hash</text>
+        <text class="dgm-lbl mid" x="259" y="222">テスト定義の改ざん検知</text>
+
+        <text class="dgm-m mid" x="519" y="204">grain test</text>
+        <text class="dgm-lbl mid" x="519" y="222">行数の突き合わせ</text>
+
+        <text class="dgm-m mid" x="779" y="204">dbt-reviewer</text>
+        <text class="dgm-lbl mid" x="779" y="222">値の照合</text>
+      </svg>
+    </div>
+    <figcaption>
+      3 段あってなお、<code>qualify</code> は 1 段目と 2 段目をすり抜けました。
+      止めたのは <strong>3 段目だけ</strong>です。区別できたのは、監査役が値を数えたから。
+      「テストが通ったので問題ない」を理由として認めない、という 1 行を Skill に書いておいたのが効きました。
+    </figcaption>
+  </figure>
+
+  <!-- ═══════════════════════ 5周目 ═══════════════════════ -->
+  <h2>5 周目：エラーメッセージ自身が罠を勧めてくる</h2>
+
+  <pre class="term">Binder Error: column "location_id" must appear in the GROUP BY clause
+  or must be part of an aggregate function.
+  Either add it to the GROUP BY list, or use "ANY_VALUE(location_id)"
+  if the exact value of "location_id" is not important.</pre>
+
+  <p style="margin-top:1.5rem">
+    DuckDB が親切に <code>ANY_VALUE()</code> を提案してきます。従うと通ります。
+    しかも今回のデータでは、<strong>その結果はたまたま正しい</strong>。
+    935 人全員が 1 店舗にしか紐づいていないからです。
+  </p>
+
+  <p>それでも却下しました。理由は 2 つ。</p>
+
+  <ul class="plain">
+    <li><code>location_id</code> は下流で一度も参照されていません。誰も読まない列を、集計してまで残す理由がない。</li>
+    <li>「顧客は 1 店舗にしか紐づかない」という不変条件は、モデルにもテストにも<strong>どこにも書かれていません</strong>。顧客が 2 店舗目で注文した日に、エラーも出さずに壊れます。</li>
+  </ul>
+
+  <div class="callout">
+    エラーメッセージが教えてくれるのは<strong>黙らせ方</strong>であって、直し方ではありません。
+  </div>
+
+  <!-- ═══════════════════════ 限界 ═══════════════════════ -->
+  <h2>ループが解決してくれない 3 つのこと</h2>
+  <p>
+    Addy は元記事の最後に <em>Loop gets better ≠ Problems get easier</em> と書いています。
+    むしろ 3 つの問題は鋭くなる、と。今回の演習でも、そのまま起きました。
+  </p>
+
+  <h3>1. Verification ─ 「終わった」は主張であって証明ではない</h3>
+  <p>
+    4 周目がまさにこれでした。テストは全部緑、行数も主キーも正しい。それでも値は 15〜40 倍ズレていた。
+    ゲートは「失敗が報告されなくなった」ことしか判定できません。
+  </p>
+
+  <h3>2. Comprehension Debt ─ 理解の負債</h3>
+  <p>
+    ループが速くコードを出すほど、実装内容と自分の理解の差が開いていきます。
+    今回は 6 周・5 ファイルなのでまだ全部読めますが、50 周・30 ファイルだったら？
+  </p>
+  <p>
+    対策として <code>LOOP_STATE.md</code> には「症状ではなく原因を書く」ことを義務づけ、
+    終了時には<strong>テストで担保されていないことの申し送り</strong>を書かせています。
+  </p>
+
+  <pre class="code">## 終了時の申し送り
+
+ゲートは緑だが、以下はテストで担保されていない。人間が見るべき箇所。
+
+2. `fct_orders.count_order_items` は、明細のない注文 27 件で NULL になる。
+   現在テストがないため緑のまま通っている。これが仕様どおりかは未確認。
+3. `supply_cost` は「SKU 1 個あたりの副資材コスト合計」。
+   明細の数量という概念がまだモデルに無いので、注文単位の原価は数量を無視している。</pre>
+
+  <h3>3. Cognitive Surrender ─ 認知的降伏</h3>
+  <p>
+    いちばん危ないのは、ループが回っていることに安心して、意見を持つのをやめることです。
+    <code>PASS=49 / ERROR=0</code> は気持ちいい数字ですが、
+    その 49 のうち何本が本当に意味のあるテストなのかは、誰も保証していません。
+  </p>
+
+  <div class="callout is-key">
+    <span class="callout-tag">最後に残る事実</span>
+    <strong>テストがない場所は、常に緑です。</strong>
+  </div>
+
+  <!-- ═══════════════════════ まとめ ═══════════════════════ -->
+  <h2>まとめ</h2>
+  <ul class="plain">
+    <li>dbt のエラー対応は構造がいつも同じなので、ループにする価値がある。</li>
+    <li>最初に決めるのはプロンプトではなく<strong>停止条件</strong>。<code>verify.sh</code> の終了コードがそれ。</li>
+    <li><strong>エージェントが採点基準を書き換えられる状態にしない。</strong>契約はハッシュで固定する。</li>
+    <li>プロジェクト固有の前提（粒度・規約・やってはいけない直し方）は Skill に書き出す。</li>
+    <li>作る役と検証する役を分け、検証役からは書き込み権限を取り上げる。</li>
+    <li>構文エラーはループが片付ける。<strong>意味のエラーで人間の判断が要る。</strong>そしてゲートは、その 2 つを区別できない。</li>
+  </ul>
+
+  <p style="margin-top:1.75rem">
+    レバレッジの効く場所が、プロンプトを書くことからループを設計することに移った ─ というのが元記事の主張です。
+    やってみて思うのは、<strong>ループ設計のほうが難しい</strong>ということでした。
+    「何をもって完了とするか」を先に言語化しないと、そもそも書けないからです。
+  </p>
+
+  <div class="close">
+    <div>ハンズオン一式 → <code>script/20260901_loop-engineering-dbt/</code></div>
+    <div>原典 → <a href="https://addyosmani.com/blog/loop-engineering/">addyosmani.com/blog/loop-engineering</a></div>
+    <div>題材 → <a href="https://github.com/dbt-labs/jaffle-shop">dbt-labs/jaffle-shop</a></div>
+  </div>
+
+</div>
