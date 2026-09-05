@@ -16,7 +16,10 @@ allowed-tools: Bash, Read, Grep, Glob, Skill, Agent, Edit
 ```
 
 - `status: PASS` なら、`LOOP_STATE.md` に完了を追記して**ループを終了する**。
-- `status: CONTRACT_VIOLATION` なら、**直ちに停止して人間を呼ぶ**。自分で戻そうとしない。
+- `status: CONTRACT_VIOLATION`（exit 2）なら、**直ちに停止して人間を呼ぶ**。自分で戻そうとしない。
+- `status: NEEDS_JUSTIFICATION`（exit 3）なら、直前の修正が症状を黙らせている。
+  **まず直し方を変える。** `loop-ok:` を書いて迂回するのは、
+  なぜその値でよいのかを `LOOP_STATE.md` に説明できるときだけ。
 - `status: FAIL` なら次へ進む。
 
 失敗が複数あるときは、**最も上流のものを 1 件だけ**選ぶ。

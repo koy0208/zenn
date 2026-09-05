@@ -21,6 +21,11 @@ git -C "$ROOT" checkout "$BASELINE" -- \
 rm -f "$ROOT/jaffle-shop/dev.duckdb" "$ROOT/jaffle-shop/dev.duckdb.wal"
 rm -rf "$ROOT/logs" "$ROOT/jaffle-shop/target"
 
+# ratchet で入れたものを外し、第 1 段階のゲートに戻す
+rm -f "$HERE/lint_diff.py"
+rm -f "$ROOT/jaffle-shop/data-tests/assert_supply_cost_reconciles.sql"
+rm -f "$HERE/contract.sha256"   # 次回の verify.sh で第 1 段階のハッシュが記録される
+
 cat > "$ROOT/LOOP_STATE.md" <<'EOF'
 # ループの状態
 

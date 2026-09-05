@@ -10,6 +10,7 @@
 #   0 = 全部緑。ループを止めてよい。
 #   1 = dbt が落ちた。まだ直す仕事が残っている。
 #   2 = 契約が改変された。修正ではなくズルなので、ループを止めて人間を呼ぶ。
+#   3 = 症状を黙らせる修正パターンを検出した。理由を書くか、直し方を変える。
 #
 set -uo pipefail
 
@@ -54,7 +55,23 @@ else
     echo "契約のハッシュを記録した: $ACTUAL"
 fi
 
-# --- 2. dbt build --------------------------------------------------------
+# --- 2. 差分リンタ（ratchet 適用後のみ）----------------------------------
+# 「症状を黙らせる」修正パターンを、LLM の判断に頼らず機械的に弾く。
+# 正当な理由があるなら該当行に `loop-ok: <理由>` を書けば通る。
+#
+# 初期状態では存在しない。./bin/ratchet.sh を実行すると入る。
+# まず素のゲートでループを回し、4 周目で騙される体験をしてから入れること。
+if [[ -f "$HERE/lint_diff.py" ]] \
+   && ! uv run --project "$ROOT" python "$HERE/lint_diff.py" > "$LOG_DIR/lint-$STAMP.log" 2>&1; then
+    {
+        echo "=== VERIFY RESULT ==="
+        echo "status: NEEDS_JUSTIFICATION"
+        cat "$LOG_DIR/lint-$STAMP.log"
+    } | tee "$LOG"
+    exit 3
+fi
+
+# --- 3. dbt build --------------------------------------------------------
 DBT=(uv run --project "$ROOT" dbt)
 
 # duckdb のファイルは profiles.yml の相対パスを cwd 基準で解決する。
@@ -69,7 +86,7 @@ cd "$PROJECT" || exit 1
 "${DBT[@]}" build --project-dir "$PROJECT" --profiles-dir "$PROJECT" >"$LOG" 2>&1
 DBT_STATUS=$?
 
-# --- 3. 機械可読なサマリ -------------------------------------------------
+# --- 4. 機械可読なサマリ -------------------------------------------------
 SUMMARY="$(grep -E '^.*Done\. PASS=' "$LOG" | tail -1 | sed 's/\x1b\[[0-9;]*m//g')"
 
 echo "=== VERIFY RESULT ==="
